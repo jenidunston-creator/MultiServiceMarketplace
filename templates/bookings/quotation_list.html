@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Quotations | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Quotations</h1>
+        <p>{% if view_as == 'provider' %}Reply to quote requests and see the quotes you sent.{% else %}Compare the quotes providers have sent you, then accept the best one.{% endif %}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+
+        {% if view_as == 'provider' and incoming %}
+        <h2 class="h5 mb-3">Requests waiting for your quote</h2>
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-5">
+            {% for req in incoming %}
+            <div class="col">
+                <article class="card-box">
+                    <h3 class="h5 mb-1">{{ req.service.name }}</h3>
+                    <p class="small text-muted mb-2">{{ req.customer.user.get_full_name|default:req.customer.user.username }} · wants {{ req.preferred_date|date:"d M Y" }} at {{ req.preferred_time|time:"g:i A" }} · {{ req.city }}</p>
+                    <p class="small">{{ req.description }}</p>
+                    <form method="post" action="{% url 'quotation_send' req.pk %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-12"><input class="form-control" type="number" name="amount" min="0.01" step="0.01" placeholder="Your price (NZD, incl. GST)" required></div>
+                            <div class="col-6"><input class="form-control" type="date" name="proposed_date" value="{{ req.preferred_date|date:'Y-m-d' }}" required></div>
+                            <div class="col-6"><input class="form-control" type="time" name="proposed_time" value="{{ req.preferred_time|time:'H:i' }}" required></div>
+                            <div class="col-12"><textarea class="form-control" name="message" rows="2" placeholder="What is included?"></textarea></div>
+                            <div class="col-12"><button class="btn btn-primary-custom btn-sm" type="submit">Send quote</button></div>
+                        </div>
+                    </form>
+                </article>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if view_as == 'customer' and waiting %}
+        <h2 class="h5 mb-3">Waiting for a reply</h2>
+        <div class="row row-cols-1 row-cols-md-2 g-4 mb-5">
+            {% for req in waiting %}
+            <div class="col">
+                <article class="card-box">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h3 class="h5 mb-1">{{ req.service.name }}</h3>
+                        <span class="badge-soft badge-pending">Awaiting reply</span>
+                    </div>
+                    <p class="small text-muted mb-0">Requested {{ req.created_at|date:"d M Y" }}</p>
+                </article>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <h2 class="h5 mb-3">{% if view_as == 'provider' %}Quotes I sent{% else %}Quotes{% endif %}</h2>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for q in quotations %}
+            <div class="col">
+                <article class="card-box">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h3 class="h5 mb-1">{{ q.service_request.service.name }}</h3>
+                        <span class="badge-soft {% if q.status == 'PENDING' %}badge-pending{% elif q.status == 'ACCEPTED' %}badge-confirmed{% else %}badge-cancelled{% endif %}">{{ q.get_status_display }}</span>
+                    </div>
+                    <p class="small text-muted">{{ q.provider.provider_name }} · sent {{ q.created_at|date:"d M Y" }}</p>
+                    <p class="price mb-2">${{ q.amount|floatformat:"-2" }} <small>incl. GST</small></p>
+                    <p class="small mb-1">Proposed: {{ q.proposed_date|date:"d M Y" }} at {{ q.proposed_time|time:"g:i A" }}</p>
+                    {% if q.message %}<p class="small">{{ q.message }}</p>{% endif %}
+
+                    {% if view_as == 'customer' and q.status == 'PENDING' %}
+                    <div class="d-flex gap-2 flex-wrap">
+                        <form method="post" action="{% url 'quotation_accept' q.pk %}">
+                            {% csrf_token %}<button class="btn btn-primary-custom btn-sm" type="submit">Accept and book</button>
+                        </form>
+                        <form method="post" action="{% url 'quotation_decline' q.pk %}">
+                            {% csrf_token %}<button class="btn btn-danger-soft btn-sm" type="submit">Decline</button>
+                        </form>
+                    </div>
+                    {% elif q.status == 'ACCEPTED' %}
+                        <a class="btn btn-outline-custom btn-sm" href="{% url 'booking_list' %}">View booking</a>
+                    {% endif %}
+                </article>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="card-box text-center">
+                    <h3 class="h5">No quotes yet</h3>
+                    <p class="text-muted mb-0">
+                        {% if view_as == 'customer' %}Open a service and press "Request a quote". <a href="{% url 'service_list' %}">Find a service</a>.{% else %}Nothing here yet.{% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

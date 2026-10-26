@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Leave a review | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Leave a review</h1>
+        <p>{{ booking.service.name }} with {{ booking.provider.provider_name }}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width:700px;">
+        <form class="card-box" method="post">
+            {% csrf_token %}
+            {% if form.errors %}<div class="alert alert-danger" role="alert">Please fix the problems shown in red below.</div>{% endif %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.rating.id_for_label }}">Rating</label>
+                {{ form.rating }}
+                {% for error in form.rating.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.comment.id_for_label }}">Your review</label>
+                {{ form.comment }}
+                {% for error in form.comment.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <button class="btn btn-primary-custom" type="submit">Submit review</button>
+            <a class="btn btn-outline-custom" href="{% url 'booking_list' %}">Cancel</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

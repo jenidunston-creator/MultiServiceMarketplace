@@ -1,0 +1,83 @@
+{% extends "dashboards/dashboard_base.html" %}
+{% block dash_title %}Provider Dashboard{% endblock %}
+
+{% block dash_sidebar %}
+    <h2>Provider</h2>
+    <a class="active" href="/dashboard/provider/">Overview</a>
+    <a href="/services/new/">Add a service</a>
+    <a href="{% url 'provider_profile' %}">My profile</a>
+    <a href="/dashboard/provider/#my-services">My services</a>
+    <a href="/dashboard/provider/#requests">Requests</a>
+    <a href="/quotations/">Quotations</a>
+    <a href="/bookings/">Bookings and jobs</a>
+    <a href="/communication/">AI chat &amp; live support</a>
+{% endblock %}
+
+{% block dash_content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1">Provider dashboard</h1>
+        <p class="text-muted mb-0">Manage your services, requests and jobs.</p>
+    </div>
+    <a class="btn btn-primary-custom" href="/services/new/">+ Add service</a>
+</div>
+
+{% if not profile.city %}
+<div class="alert alert-warning">
+    <strong>Add your city.</strong> Customers search by city, so you will not show up until you add it.
+    <a href="{% url 'provider_profile' %}" class="alert-link">Update my profile</a>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ live_count }}</div><div class="lbl">Live services</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ request_count }}</div><div class="lbl">Quote requests</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ pending_count }}</div><div class="lbl">Jobs to confirm</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ avg_rating|default:"-" }}</div><div class="lbl">Average rating</div></div></div>
+</div>
+
+<h2 class="h5" id="requests">Latest jobs</h2>
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0">
+        <thead><tr><th>Customer</th><th>Service</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for b in jobs %}
+            <tr>
+                <td>{{ b.customer.user.get_full_name|default:b.customer.user.username }}</td>
+                <td>{{ b.service.name }}</td>
+                <td>{{ b.booking_date|date:"d M Y" }}</td>
+                <td><span class="badge-soft {% if b.status == 'PENDING' %}badge-pending{% elif b.status == 'CONFIRMED' %}badge-confirmed{% elif b.status == 'IN_PROGRESS' %}badge-progress{% elif b.status == 'COMPLETED' %}badge-done{% else %}badge-cancelled{% endif %}">{{ b.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No jobs yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="p-3"><a class="btn btn-outline-custom btn-sm" href="{% url 'booking_list' %}">Manage all jobs</a>
+    <a class="btn btn-outline-custom btn-sm" href="{% url 'quotation_list' %}">Quote requests</a></div>
+</div>
+
+<h2 class="h5" id="my-services">My services</h2>
+<div class="table-wrap table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Service</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for item in listings %}
+            <tr>
+                <td>{{ item.service.name }}</td>
+                <td>{{ item.service.category.name }}</td>
+                <td>${{ item.price|floatformat:"-2" }}</td>
+                <td>{% if item.is_active %}<span class="badge-soft badge-confirmed">Live</span>{% else %}<span class="badge-soft badge-cancelled">Hidden</span>{% endif %}</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-outline-custom btn-sm" href="{% url 'service_detail' item.pk %}">View</a>
+                    <a class="btn btn-outline-custom btn-sm" href="{% url 'service_update' item.pk %}">Edit</a>
+                    <a class="btn btn-danger-soft btn-sm" href="{% url 'service_delete' item.pk %}">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-4">You have not added any services yet. <a href="{% url 'service_create' %}">Add your first service</a>.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

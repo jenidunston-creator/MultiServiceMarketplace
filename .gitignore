@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Local database and uploaded files
+db.sqlite3
+media/
+
+# Secrets and editor files
+.env
+.vscode/
+.idea/
+
+# Collected static files (created when deploying)
+staticfiles/

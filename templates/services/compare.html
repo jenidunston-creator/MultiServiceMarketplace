@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Compare Service Providers | Servana{% endblock %}
+{% block description %}Compare prices, ratings, experience and availability side by side before you choose a service provider in New Zealand.{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Compare providers</h1>
+        <p>See prices, ratings and availability side by side.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        {% if listings %}
+        <div class="table-wrap table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Detail</th>
+                        {% for item in listings %}<th scope="col">{{ item.provider.provider_name }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th scope="row">Service</th>{% for item in listings %}<td>{{ item.service.name }}</td>{% endfor %}</tr>
+                    <tr><th scope="row">City</th>{% for item in listings %}<td>{{ item.provider.city|default:"-" }}</td>{% endfor %}</tr>
+                    <tr><th scope="row">Price (incl. GST)</th>{% for item in listings %}<td class="price">${{ item.price|floatformat:"-2" }}</td>{% endfor %}</tr>
+                    <tr><th scope="row">Rating</th>{% for item in listings %}<td class="rating">{% if item.avg_rating %}★ {{ item.avg_rating|floatformat:1 }}{% else %}-{% endif %}</td>{% endfor %}</tr>
+                    <tr><th scope="row">Experience</th>{% for item in listings %}<td>{{ item.experience_years }} year{{ item.experience_years|pluralize }}</td>{% endfor %}</tr>
+                    <tr><th scope="row">Availability</th>{% for item in listings %}<td>{{ item.availability|default:"-" }}</td>{% endfor %}</tr>
+                    <tr>
+                        <th scope="row"></th>
+                        {% for item in listings %}<td><a class="btn btn-primary-custom btn-sm" href="{% url 'service_detail' item.pk %}">View</a></td>{% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="card-box text-center">
+            <h2 class="h5">Nothing to compare yet</h2>
+            <p class="text-muted mb-0">Go back to the services page and tick the "Compare" box on two or three services.</p>
+        </div>
+        {% endif %}
+        <a href="{% url 'service_list' %}" class="btn btn-outline-custom mt-4">← Back to services</a>
+    </div>
+</section>
+{% endblock %}

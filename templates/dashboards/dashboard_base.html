@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{% block dash_title %}Dashboard{% endblock %} | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dash-layout">
+        <aside class="dash-sidebar" aria-label="Dashboard menu">
+            {% block dash_sidebar %}{% endblock %}
+        </aside>
+        <section>
+            {% block dash_content %}{% endblock %}
+        </section>
+    </div>
+</div>
+{% endblock %}

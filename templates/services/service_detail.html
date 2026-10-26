@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.service.name }}{% if listing.provider.city %} in {{ listing.provider.city }}{% endif %} | Servana{% endblock %}
+{% block description %}{{ listing.description|truncatechars:150 }}{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2" style="--bs-breadcrumb-divider-color:#cfe6dc;">
+                <li class="breadcrumb-item"><a href="{% url 'service_list' %}" class="text-white-50">Services</a></li>
+                <li class="breadcrumb-item active text-white" aria-current="page">{{ listing.service.name }}</li>
+            </ol>
+        </nav>
+        <h1>{{ listing.service.name }}</h1>
+        <p>{{ listing.provider.provider_name }}{% if listing.provider.city %} · {{ listing.provider.city }}{% endif %}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        <div class="row g-4">
+
+            <div class="col-lg-8">
+                <div class="card-box mb-4">
+                    {% if listing.image %}
+                        <img src="{{ listing.image.url }}" alt="{{ listing.service.name }}" class="service-thumb" style="height:220px;object-fit:cover;width:100%;">
+                    {% else %}
+                        <div class="service-thumb" style="height:220px;" aria-hidden="true">🛠️</div>
+                    {% endif %}
+                    <span class="badge-soft badge-done mb-2">{{ listing.service.category.name }}</span>
+                    {% if not listing.is_active %}<span class="badge-soft badge-cancelled mb-2">Hidden from customers</span>{% endif %}
+                    <h2 class="h4">About this service</h2>
+                    <p>{{ listing.description|linebreaksbr }}</p>
+                    <ul>
+                        {% if listing.provider.service_area %}<li>Service area: {{ listing.provider.service_area }}</li>{% endif %}
+                        {% if listing.availability %}<li>Availability: {{ listing.availability }}</li>{% endif %}
+                        <li>Experience: {{ listing.experience_years }} year{{ listing.experience_years|pluralize }}</li>
+                    </ul>
+                </div>
+
+                <div class="card-box mb-4">
+                    <h2 class="h4">Reviews
+                        {% if listing.avg_rating %}<span class="rating">★ {{ listing.avg_rating|floatformat:1 }}</span>{% endif %}
+                    </h2>
+
+                    {% for review in reviews %}
+                    <div class="border-bottom pb-3 mb-3">
+                        <p class="mb-1"><strong>{{ review.customer.user.first_name|default:review.customer.user.username }}</strong>
+                            <span class="rating">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</span></p>
+                        <p class="mb-0 small">{{ review.comment }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">No reviews yet. Customers can review after a completed booking.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <aside class="card-box" style="position:sticky; top:90px;">
+                    <p class="price mb-1">${{ listing.price|floatformat:"-2" }} <small>incl. GST</small></p>
+                    <p class="small text-muted">Final price depends on the job. Request a quote or book directly.</p>
+
+                    <a href="{% url 'booking_create' %}?service={{ listing.pk }}" class="btn btn-primary-custom w-100 mb-2">Book now</a>
+                    <a href="{% url 'quote_request' listing.pk %}" class="btn btn-outline-custom w-100 mb-2">Request a quote</a>
+                    <a href="/communication/" class="btn btn-outline-custom w-100">Ask the AI assistant</a>
+
+                    {% if can_edit %}
+                    <hr>
+                    <h3 class="h6">Manage this service</h3>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-outline-custom btn-sm" href="{% url 'service_update' listing.pk %}">Edit</a>
+                        <a class="btn btn-danger-soft btn-sm" href="{% url 'service_delete' listing.pk %}">Delete</a>
+                    </div>
+                    {% endif %}
+
+                    <hr>
+                    <h3 class="h6">Provider</h3>
+                    <p class="mb-1"><strong>{{ listing.provider.provider_name }}</strong></p>
+                    {% if listing.provider.verification_status == 'VERIFIED' %}<p class="small mb-1">Verified provider ✓</p>{% endif %}
+                    <p class="small mb-0">{{ listing.provider.city|default:"New Zealand" }}</p>
+                </aside>
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}

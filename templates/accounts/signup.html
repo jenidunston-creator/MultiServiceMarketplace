@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Create your account | Servana{% endblock %}
+{% block robots %}noindex, follow{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="container">
+        <div class="auth-card" style="max-width:560px;">
+            <h1 class="h2 mb-1">Join Servana</h1>
+            <p class="text-muted">Create a free account and get started in a minute.</p>
+            {% if form.errors %}
+<div class="alert alert-danger" role="alert">
+    <strong>Please fix the following:</strong>
+    <ul class="mb-0">
+        {% for field in form %}{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}{% endfor %}
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+</div>
+{% endif %}
+            <form method="post" action="/accounts/signup/" novalidate>
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label" for="id_role">I am joining as</label>
+                    <select class="form-select" id="id_role" name="role" required>
+                        <option value="customer" {% if request.GET.role == 'customer' or not request.GET.role %}selected{% endif %}>Customer (find services)</option>
+                        <option value="provider" {% if request.GET.role == 'provider' %}selected{% endif %}>Service provider (offer services)</option>
+                        <option value="business" {% if request.GET.role == 'business' %}selected{% endif %}>Business (company with employees)</option>
+                    </select>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="id_first_name">First name</label>
+                        <input class="form-control" id="id_first_name" name="first_name" type="text" autocomplete="given-name">
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="id_last_name">Last name</label>
+                        <input class="form-control" id="id_last_name" name="last_name" type="text" autocomplete="family-name">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="id_username">Username</label>
+                        <input class="form-control" id="id_username" name="username" type="text" autocomplete="username" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="id_email">Email</label>
+                        <input class="form-control" id="id_email" name="email" type="email" autocomplete="email" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="id_phone">Phone (optional)</label>
+                        <input class="form-control" id="id_phone" name="phone" type="tel" placeholder="e.g. 021 123 4567">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="id_city">City</label>
+                        <select class="form-select" id="id_city" name="city">
+                            <option value="">Choose your city</option>
+                            <option>Auckland</option><option>Wellington</option><option>Christchurch</option>
+                            <option>Hamilton</option><option>Tauranga</option><option>Dunedin</option>
+                            <option>Queenstown</option><option>New Plymouth</option><option>Palmerston North</option>
+                            <option>Rotorua</option><option>Napier</option><option>Nelson</option>
+                            <option>Invercargill</option><option>Whangārei</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="id_password1">Password</label>
+                        <input class="form-control" id="id_password1" name="password1" type="password" autocomplete="new-password" required>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="id_password2">Confirm password</label>
+                        <input class="form-control" id="id_password2" name="password2" type="password" autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom w-100 mt-4">Create account</button>
+            </form>
+
+            <p class="text-center small mt-4 mb-0">
+                Already have an account? <a href="/accounts/login/">Log in</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

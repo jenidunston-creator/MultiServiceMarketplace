@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{% if agent_view %}Support chat{% else %}AI Assistant and Live Support{% endif %} | Servana{% endblock %}
+{% block description %}Chat with Nova, the Servana AI assistant, to find the right service in New Zealand, or ask for a live support agent.{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>{% if agent_view %}Support chat with {{ conversation.user.username }}{% else %}Chat with Nova{% endif %}</h1>
+        <p>{% if agent_view %}Reply to the customer below.{% else %}Describe what you need and Nova will help you find the right provider.{% endif %}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        <div class="row g-4">
+
+            <div class="col-lg-8">
+                <div class="chat-box">
+                    <div class="chat-head">
+                        <div>
+                            <strong>{% if agent_view %}{{ conversation.user.username }}{% elif conversation.escalated %}Live support{% else %}Nova AI Assistant{% endif %}</strong><br>
+                            <small class="text-muted">
+                                {% if agent_view %}Customer is waiting for a reply
+                                {% elif conversation.escalated %}Waiting for a support agent. This page refreshes by itself.
+                                {% else %}You are chatting with the AI assistant{% endif %}
+                            </small>
+                        </div>
+                        {% if agent_view %}
+                        <form method="post" action="{% url 'agent_close' conversation.pk %}">
+                            {% csrf_token %}
+                            <button class="btn btn-danger-soft btn-sm" type="submit">Close chat</button>
+                        </form>
+                        {% elif not conversation.escalated %}
+                        <form method="post" action="{% url 'chat_escalate' %}">
+                            {% csrf_token %}
+                            <button class="btn btn-accent btn-sm" type="submit">Connect to live agent</button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    <div class="chat-body" id="chat-body" aria-live="polite">
+                        {% for m in chat_messages %}
+                        <div class="msg {{ m.css }}">{{ m.text|linebreaksbr }}<small>{{ m.who }} · {{ m.time|date:"g:i A" }}</small></div>
+                        {% endfor %}
+                    </div>
+
+                    <form class="chat-foot" method="post"
+                          action="{% if agent_view %}{% url 'agent_reply' conversation.pk %}{% else %}{% url 'chat_send' %}{% endif %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <label class="visually-hidden" for="chat-input">Your message</label>
+                            <input class="form-control" id="chat-input" name="message" type="text" maxlength="500"
+                                   placeholder="Type your message..." autocomplete="off" required>
+                            <button class="btn btn-primary-custom" type="submit">Send</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <aside class="card-box mb-3">
+                    <h2 class="h5">What {% if agent_view %}Nova understood{% else %}Nova understood{% endif %}</h2>
+                    {% if known %}
+                    <dl class="extract-box mb-0">
+                        {% if known.service %}<dt>Service</dt><dd>{{ known.service }}</dd>{% endif %}
+                        {% if known.category %}<dt>Category</dt><dd>{{ known.category }}</dd>{% endif %}
+                        {% if known.problem %}<dt>Problem</dt><dd>{{ known.problem }}</dd>{% endif %}
+                        {% if known.city %}<dt>Location</dt><dd>{% if known.area %}{{ known.area }}, {% endif %}{{ known.city }}</dd>{% endif %}
+                        {% if known.date %}<dt>Date</dt><dd>{{ known.date }}</dd>{% endif %}
+                        {% if known.urgency %}<dt>Urgency</dt><dd>{{ known.urgency }}</dd>{% endif %}
+                    </dl>
+                    {% else %}
+                    <p class="small text-muted mb-0">Nothing yet. Tell Nova what you need and the details will appear here.</p>
+                    {% endif %}
+                    {% if match_link %}
+                    <a class="btn btn-primary-custom w-100 mt-3" href="{{ match_link }}">Show matching providers</a>
+                    {% endif %}
+                </aside>
+
+                {% if agent_view %}
+                <a class="btn btn-outline-custom w-100" href="{% url 'agent_inbox' %}">← Back to inbox</a>
+                {% else %}
+                <aside class="card-box">
+                    <h2 class="h5">Need a person?</h2>
+                    <p class="small">Press <strong>Connect to live agent</strong> and our support team will join this conversation.</p>
+                    <form method="post" action="{% url 'chat_new' %}">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-custom btn-sm" type="submit">Start a new chat</button>
+                    </form>
+                </aside>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // show the newest message
+    const chatBody = document.getElementById("chat-body");
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    {% if conversation.escalated %}
+    // while a person is involved, reload every 15 seconds to show new replies
+    // (only when nothing is being typed)
+    setTimeout(function () {
+        if (!document.getElementById("chat-input").value) { location.reload(); }
+    }, 15000);
+    {% endif %}
+</script>
+{% endblock %}

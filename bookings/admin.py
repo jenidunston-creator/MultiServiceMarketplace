@@ -1,0 +1,32 @@
+from django.contrib import admin
+from .models import Quotation, Booking, Payment, Review
+
+
+@admin.register(Quotation)
+class QuotationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'service_request', 'provider', 'amount', 'status', 'created_at')
+    list_filter = ('status',)
+
+
+@admin.register(Booking)
+class BookingAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'customer', 'provider', 'service',
+        'booking_date', 'agreed_price', 'status',
+    )
+    list_filter = ('status', 'booking_date')
+    search_fields = ('customer__user__username', 'provider__provider_name')
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'booking', 'amount', 'method', 'status', 'paid_at')
+    list_filter = ('status', 'method')
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('id', 'provider', 'customer', 'rating', 'is_approved', 'created_at')
+    list_filter = ('is_approved', 'rating')
+    list_editable = ('is_approved',)
+    search_fields = ('provider__provider_name', 'comment')

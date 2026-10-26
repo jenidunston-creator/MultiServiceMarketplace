@@ -1,0 +1,52 @@
+{% extends "dashboards/dashboard_base.html" %}
+{% block dash_title %}Customer Dashboard{% endblock %}
+
+{% block dash_sidebar %}
+    <h2>Customer</h2>
+    <a class="active" href="/dashboard/customer/">Overview</a>
+    <a href="/services/">Find services</a>
+    <a href="/services/compare/">Compare providers</a>
+    <a href="/quotations/">Quotations</a>
+    <a href="/bookings/">My bookings</a>
+    <a href="/communication/">AI chat &amp; live support</a>
+{% endblock %}
+
+{% block dash_content %}
+<h1 class="h2 mb-1">Kia ora, {{ user.first_name|default:"there" }}</h1>
+<p class="text-muted">Here is what is happening with your services.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ active_count }}</div><div class="lbl">Active bookings</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ quotes_waiting }}</div><div class="lbl">Quotes waiting</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ completed_count }}</div><div class="lbl">Completed jobs</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ reviews_count }}</div><div class="lbl">Reviews given</div></div></div>
+</div>
+
+<div class="card-box mb-4">
+    <h2 class="h5">Quick actions</h2>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary-custom" href="/services/">Find a service</a>
+        <a class="btn btn-outline-custom" href="/communication/">Ask the AI assistant</a>
+        <a class="btn btn-outline-custom" href="{% url 'quotation_list' %}">View quotations</a>
+    </div>
+</div>
+
+<h2 class="h5">Recent bookings</h2>
+<div class="table-wrap table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>Service</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for b in recent %}
+            <tr>
+                <td>{{ b.service.name }}</td>
+                <td>{{ b.booking_date|date:"d M Y" }}</td>
+                <td>${{ b.agreed_price|floatformat:"-2" }}</td>
+                <td><span class="badge-soft {% if b.status == 'PENDING' %}badge-pending{% elif b.status == 'CONFIRMED' %}badge-confirmed{% elif b.status == 'IN_PROGRESS' %}badge-progress{% elif b.status == 'COMPLETED' %}badge-done{% else %}badge-cancelled{% endif %}">{{ b.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No bookings yet. <a href="{% url 'service_list' %}">Find a service</a>.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

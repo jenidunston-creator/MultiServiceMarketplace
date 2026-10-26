@@ -1,0 +1,81 @@
+{% extends "dashboards/dashboard_base.html" %}
+{% block dash_title %}Business Dashboard{% endblock %}
+
+{% block dash_sidebar %}
+    <h2>Business</h2>
+    <a class="active" href="{% url 'business_dashboard' %}">Overview</a>
+    <a href="#employees">Team</a>
+    <a href="{% url 'service_list' %}">Find services</a>
+    <a href="#recent">Recent bookings</a>
+    <a href="{% url 'booking_list' %}">All bookings</a>
+    <a href="{% url 'quotation_list' %}">Quotations</a>
+    <a href="/communication/">AI chat &amp; live support</a>
+{% endblock %}
+
+{% block dash_content %}
+<h1 class="h2 mb-1">{{ business.business_name }}</h1>
+<p class="text-muted">Manage your team and the services your business books.</p>
+
+<div class="row g-3 mb-4" id="reports">
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ employee_count }}</div><div class="lbl">Team members</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ open_count }}</div><div class="lbl">Open bookings</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ month_count }}</div><div class="lbl">Bookings this month</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">${{ month_spent|floatformat:"-2" }}</div><div class="lbl">Spent this month</div></div></div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2" id="employees">
+    <h2 class="h5 mb-0">Team</h2>
+    <button class="btn btn-primary-custom btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#addEmployee">+ Add team member</button>
+</div>
+
+<div class="collapse mb-3" id="addEmployee">
+    <form class="card-box" method="post" action="{% url 'business_employee_add' %}">
+        {% csrf_token %}
+        <p class="small text-muted">The person must already have a Servana account. Enter their username.</p>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="emp_username">Username</label><input class="form-control" id="emp_username" name="username" required></div>
+            <div class="col-md-6"><label class="form-label" for="emp_position">Position</label><input class="form-control" id="emp_position" name="position" placeholder="e.g. Office manager"></div>
+        </div>
+        <button class="btn btn-primary-custom mt-3" type="submit">Add to team</button>
+    </form>
+</div>
+
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Username</th><th>Position</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for m in members %}
+            <tr>
+                <td>{{ m.user.username }}</td><td>{{ m.position }}</td><td>{{ m.joined_at|date:"d M Y" }}</td>
+                <td>
+                    <form method="post" action="{% url 'business_employee_remove' m.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn btn-danger-soft btn-sm" type="submit" onclick="return confirm('Remove this person from your team?');">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No team members yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5" id="recent">Recent bookings</h2>
+<div class="table-wrap table-responsive">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Service</th><th>Provider</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for b in recent %}
+            <tr>
+                <td>{{ b.service.name }}</td><td>{{ b.provider.provider_name }}</td>
+                <td>{{ b.booking_date|date:"d M Y" }}</td><td>${{ b.agreed_price|floatformat:"-2" }}</td>
+                <td><span class="badge-soft {% if b.status == 'PENDING' %}badge-pending{% elif b.status == 'CONFIRMED' %}badge-confirmed{% elif b.status == 'IN_PROGRESS' %}badge-progress{% elif b.status == 'COMPLETED' %}badge-done{% else %}badge-cancelled{% endif %}">{{ b.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No bookings yet. <a href="{% url 'service_list' %}">Find a service</a>.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

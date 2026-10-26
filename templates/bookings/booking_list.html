@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}My Bookings | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>{% if view_as == 'provider' %}Jobs{% else %}Bookings{% endif %}</h1>
+        <p>{% if view_as == 'provider' %}Update the status of your jobs.{% elif view_as == 'admin' %}All bookings on the platform.{% else %}Pay, cancel and review your bookings.{% endif %}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        <div class="table-wrap table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>#</th><th>Service</th>
+                        <th>{% if view_as == 'provider' %}Customer{% else %}Provider{% endif %}</th>
+                        <th>Date</th><th>Total</th><th>Status</th><th>Payment</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                    <tr>
+                        <td>{{ b.pk }}</td>
+                        <td>{{ b.service.name }}</td>
+                        <td>{% if view_as == 'provider' %}{{ b.customer.user.get_full_name|default:b.customer.user.username }}{% else %}{{ b.provider.provider_name }}{% endif %}</td>
+                        <td>{{ b.booking_date|date:"d M Y" }}<br><small class="text-muted">{{ b.booking_time|time:"g:i A" }}</small></td>
+                        <td>${{ b.agreed_price|floatformat:"-2" }}</td>
+                        <td>
+                            <span class="badge-soft {% if b.status == 'PENDING' %}badge-pending{% elif b.status == 'CONFIRMED' %}badge-confirmed{% elif b.status == 'IN_PROGRESS' %}badge-progress{% elif b.status == 'COMPLETED' %}badge-done{% else %}badge-cancelled{% endif %}">{{ b.get_status_display }}</span>
+                        </td>
+                        <td>
+                            {% if b.payment %}{{ b.payment.get_status_display }}{% else %}<span class="text-muted">Not paid</span>{% endif %}
+                        </td>
+                        <td class="text-nowrap">
+                            {% if view_as == 'customer' %}
+                                {% if b.can_pay %}
+                                    <a class="btn btn-primary-custom btn-sm" href="{% url 'booking_pay' b.pk %}">Pay</a>
+                                {% endif %}
+                                {% if b.status == 'PENDING' or b.status == 'CONFIRMED' %}
+                                <form method="post" action="{% url 'booking_status' b.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="CANCELLED">
+                                    <button class="btn btn-danger-soft btn-sm" type="submit" onclick="return confirm('Cancel this booking?');">Cancel</button>
+                                </form>
+                                {% endif %}
+                                {% if b.status == 'COMPLETED' and not b.review %}
+                                    <a class="btn btn-outline-custom btn-sm" href="{% url 'booking_review' b.pk %}">Leave review</a>
+                                {% endif %}
+                            {% elif view_as == 'provider' %}
+                                <form method="post" action="{% url 'booking_status' b.pk %}" class="d-flex gap-2">
+                                    {% csrf_token %}
+                                    <label class="visually-hidden" for="status{{ b.pk }}">Update job status</label>
+                                    <select class="form-select form-select-sm" id="status{{ b.pk }}" name="status">
+                                        {% for value, label in provider_choices %}
+                                        <option value="{{ value }}" {% if b.status == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn btn-outline-custom btn-sm" type="submit">Update</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">
+                        No bookings yet.{% if view_as == 'customer' %} <a href="{% url 'service_list' %}">Find a service</a>.{% endif %}
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

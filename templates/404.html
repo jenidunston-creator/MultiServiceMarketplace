@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Page not found | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="container">
+        <div class="auth-card text-center">
+            <div style="font-size:3rem;" aria-hidden="true">🧭</div>
+            <h1 class="h3">Page not found</h1>
+            <p class="text-muted">Sorry, we could not find that page. It may have been moved or deleted.</p>
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <a class="btn btn-primary-custom" href="/">Go to the home page</a>
+                <a class="btn btn-outline-custom" href="/services/">Find a service</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

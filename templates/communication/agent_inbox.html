@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Support inbox | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Support inbox</h1>
+        <p>Customers who asked to speak to a person.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        <div class="table-wrap table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>Customer</th><th>Topic</th><th>Last message</th><th>Agent</th><th></th></tr></thead>
+                <tbody>
+                    {% for c in chats %}
+                    <tr>
+                        <td>{{ c.user.username }}</td>
+                        <td>{{ c.subject|default:"Support request" }}</td>
+                        <td>{{ c.updated_at|date:"d M Y, g:i A" }}</td>
+                        <td>{{ c.assigned_agent.username|default:"Not assigned" }}</td>
+                        <td><a class="btn btn-primary-custom btn-sm" href="{% url 'agent_chat' c.pk %}">Open chat</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No customers are waiting. 🎉</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a class="btn btn-outline-custom mt-4" href="{% url 'admin_dashboard' %}">← Back to dashboard</a>
+    </div>
+</section>
+{% endblock %}

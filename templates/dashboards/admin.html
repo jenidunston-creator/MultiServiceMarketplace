@@ -1,0 +1,147 @@
+{% extends "dashboards/dashboard_base.html" %}
+{% block dash_title %}Admin Dashboard{% endblock %}
+
+{% block dash_sidebar %}
+    <h2>Administrator</h2>
+    <a class="active" href="{% url 'admin_dashboard' %}">Overview</a>
+    <a href="#reports">Reports</a>
+    <a href="#users">Users</a>
+    <a href="#verify">Verify providers</a>
+    <a href="#reviews">Reviews</a>
+    <a href="{% url 'agent_inbox' %}">Live support</a>
+    <a href="{% url 'booking_list' %}">All bookings</a>
+    <a href="/admin/">Django admin</a>
+{% endblock %}
+
+{% block dash_content %}
+<h1 class="h2 mb-1">Admin dashboard</h1>
+<p class="text-muted">Platform overview, moderation and support.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ user_count }}</div><div class="lbl">Total users</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ provider_count }}</div><div class="lbl">Providers</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ booking_count }}</div><div class="lbl">Bookings</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">${{ revenue|floatformat:"-2" }}</div><div class="lbl">Payments received</div></div></div>
+</div>
+
+<h2 class="h5" id="reports">Reports</h2>
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card-box">
+            <h3 class="h6">Bookings by status</h3>
+            {% for bar in status_bars %}
+            <div class="mb-2">
+                <div class="d-flex justify-content-between small"><span>{{ bar.label }}</span><span>{{ bar.count }}</span></div>
+                <div class="progress" role="progressbar" aria-label="{{ bar.label }}" aria-valuenow="{{ bar.percent }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
+                    <div class="progress-bar" style="width:{{ bar.percent }}%; background:var(--primary);"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card-box">
+            <h3 class="h6">Most booked services</h3>
+            {% for row in top_services %}
+            <div class="mb-2">
+                <div class="d-flex justify-content-between small"><span>{{ row.name }}</span><span>{{ row.count }}</span></div>
+                <div class="progress" role="progressbar" aria-label="{{ row.name }}" aria-valuenow="{{ row.percent }}" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
+                    <div class="progress-bar" style="width:{{ row.percent }}%; background:var(--accent);"></div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted small mb-0">No bookings yet.</p>
+            {% endfor %}
+            <a class="btn btn-outline-custom btn-sm mt-3" href="{% url 'admin_bookings_csv' %}">Download bookings (CSV)</a>
+        </div>
+    </div>
+</div>
+
+<h2 class="h5" id="users">Users</h2>
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Username</th><th>Role</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.get_role_display }}{% if u.is_superuser %} <small class="text-muted">(superuser)</small>{% endif %}</td>
+                <td>{{ u.date_joined|date:"d M Y" }}</td>
+                <td>{% if u.is_active %}<span class="badge-soft badge-confirmed">Active</span>{% else %}<span class="badge-soft badge-cancelled">Deactivated</span>{% endif %}</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-outline-custom btn-sm" href="/admin/accounts/user/{{ u.pk }}/change/">Edit</a>
+                    {% if not u.is_superuser and u != request.user %}
+                    <form method="post" action="{% url 'admin_user_toggle' u.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn {% if u.is_active %}btn-danger-soft{% else %}btn-primary-custom{% endif %} btn-sm" type="submit">{% if u.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5" id="verify">Providers waiting for verification</h2>
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Provider</th><th>User</th><th>City</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for p in pending_providers %}
+            <tr>
+                <td>{{ p.provider_name }}</td><td>{{ p.user.username }}</td><td>{{ p.city|default:"-" }}</td>
+                <td class="text-nowrap">
+                    <form method="post" action="{% url 'admin_provider_verify' p.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button class="btn btn-primary-custom btn-sm" name="decision" value="verify" type="submit">Verify</button>
+                        <button class="btn btn-danger-soft btn-sm" name="decision" value="reject" type="submit">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No providers are waiting.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5" id="reviews">Review moderation</h2>
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Reviewer</th><th>Provider</th><th>Rating</th><th>Comment</th><th>Actions</th></tr></thead>
+        <tbody>
+            {% for r in reviews %}
+            <tr>
+                <td>{{ r.customer.user.username }}</td>
+                <td>{{ r.provider.provider_name }}</td>
+                <td class="rating">{{ r.rating }}/5</td>
+                <td>{{ r.comment|truncatechars:60 }}{% if not r.is_approved %} <span class="badge-soft badge-cancelled">Hidden</span>{% endif %}</td>
+                <td>
+                    <form method="post" action="{% url 'admin_review_toggle' r.pk %}">
+                        {% csrf_token %}
+                        <button class="btn btn-outline-custom btn-sm" type="submit">{% if r.is_approved %}Hide{% else %}Approve{% endif %}</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-4">No reviews yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h5" id="support">Escalated chats</h2>
+<div class="table-wrap table-responsive">
+    <table class="table mb-0">
+        <thead><tr><th>User</th><th>Topic</th><th>Started</th><th>Action</th></tr></thead>
+        <tbody>
+            {% for c in chats %}
+            <tr><td>{{ c.user.username }}</td><td>{{ c.subject|default:"Support request" }}</td><td>{{ c.created_at|date:"d M Y H:i" }}</td><td><a class="btn btn-primary-custom btn-sm" href="{% url 'agent_chat' c.pk %}">Open chat</a></td></tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">No chats are waiting for a person.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
