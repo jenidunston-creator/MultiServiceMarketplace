@@ -7,8 +7,8 @@ customers can ask for a live support agent.
 
 > Final project for the Django course. Built with Django, SQLite, HTML, CSS and Bootstrap 5.
 
-- **GitHub:** `ADD YOUR GITHUB LINK HERE`
-- **Live site:** `ADD YOUR DEPLOY LINK HERE`
+- **GitHub:** https://github.com/jenidunston-creator/MultiServiceMarketplace
+- **Live site:** `DEPLOY LINK`
 
 ---
 
