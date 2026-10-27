@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from .decorators import role_required
 from .forms import ROLE_MAP, ProviderProfileForm, SignupForm
-from bookings.models import Booking, Payment, Quotation, Review
+from bookings.models import Booking, Complaint, Payment, Quotation, Review
 from communication.models import ChatConversation
 from services.models import ServiceProviderService, ServiceRequest
 from .models import Business, BusinessMember, ProviderProfile, User
@@ -184,6 +184,9 @@ def admin_dashboard(request):
         'provider_count': ProviderProfile.objects.count(),
         'booking_count': total_bookings,
         'revenue': revenue or 0,
+        'payments_waiting': Payment.objects.filter(status=Payment.Status.AWAITING).count(),
+        'complaints_open': Complaint.objects.filter(
+            status__in=[Complaint.Status.OPEN, Complaint.Status.IN_REVIEW]).count(),
         'open_chats': ChatConversation.objects.filter(escalated=True, is_active=True).count(),
         'status_bars': status_bars,
         'top_services': [{'name': r['service__name'], 'count': r['n'],

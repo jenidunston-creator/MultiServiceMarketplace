@@ -12,10 +12,10 @@ from django.views.decorators.http import require_POST
 from accounts.decorators import role_required
 from accounts.models import CustomerProfile, User
 from communication.models import Notification
-from communication.notify import notify
+from communication.notify import notify, notify_admins
 from services.models import ProviderMatch, ServiceProviderService, ServiceRequest
-from .forms import PaymentForm, QuotationForm, RequestForm, ReviewForm
-from .models import Booking, Payment, Quotation, Review
+from .forms import ComplaintForm, PaymentForm, QuotationForm, RequestForm, ReviewForm
+from .models import Booking, Complaint, Payment, Quotation, Review
 
 # these two roles can book services; providers and admins cannot
 BUYER_ROLES = (User.Role.CUSTOMER, User.Role.BUSINESS)
@@ -105,8 +105,9 @@ def booking_list(request):
 
     bookings = list(bookings)
     for b in bookings:
-        paid = hasattr(b, 'payment') and b.payment.status == Payment.Status.PAID
-        b.can_pay = b.status != Booking.Status.CANCELLED and not paid
+        locked = hasattr(b, 'payment') and b.payment.status in (
+            Payment.Status.PAID, Payment.Status.AWAITING)
+        b.can_pay = b.status != Booking.Status.CANCELLED and not locked
 
     return render(request, 'bookings/booking_list.html', {
         'bookings': bookings,
@@ -176,6 +177,9 @@ def booking_pay(request, pk):
     if payment and payment.status == Payment.Status.PAID:
         messages.info(request, 'This booking is already paid.')
         return redirect('booking_list')
+    if payment and payment.status == Payment.Status.AWAITING:
+        messages.info(request, 'Your payment is waiting for admin approval.')
+        return redirect('booking_list')
 
     if request.method == 'POST':
         form = PaymentForm(request.POST)
@@ -189,11 +193,19 @@ def booking_pay(request, pk):
                 payment.paid_at = None
                 text = 'You chose to pay the provider after the job.'
             else:
-                payment.status = Payment.Status.PAID         # demo only, no real card details
-                payment.paid_at = timezone.now()
+                # demo only, no real card details. An admin must approve it before it counts as paid.
+                payment.status = Payment.Status.AWAITING
+                payment.paid_at = None
+                payment.reviewed_by = None
+                payment.reviewed_at = None
+                payment.admin_note = ''
                 payment.transaction_reference = 'DEMO-' + uuid.uuid4().hex[:10].upper()
-                text = 'Payment received. Thank you!'
+                text = 'Payment submitted. It is waiting for admin approval.'
             payment.save()
+            if payment.status == Payment.Status.AWAITING:
+                notify_admins(Notification.NotificationType.PAYMENT, 'Payment to approve',
+                              f'{request.user.username} paid ${payment.amount} for booking #{booking.pk}.',
+                              '/bookings/payments/')
             notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment update',
                    f'{request.user.username} chose {payment.get_method_display()} for booking #{booking.pk} '
                    f'({payment.get_status_display()}).', '/bookings/')
@@ -388,3 +400,132 @@ def quotation_decline(request, pk):
            '/quotations/')
     messages.info(request, 'Quote declined.')
     return redirect('quotation_list')
+
+
+# ------------------------------------------------------------------ admin: payment approval
+@role_required(User.Role.ADMIN)
+def payment_approvals(request):
+    payments = Payment.objects.select_related(
+        'booking__service', 'booking__customer__user', 'booking__provider', 'reviewed_by')
+    return render(request, 'bookings/payment_approvals.html', {
+        'waiting': payments.filter(status=Payment.Status.AWAITING).order_by('created_at'),
+        'history': payments.exclude(status__in=[Payment.Status.AWAITING, Payment.Status.PENDING]
+                                    ).order_by('-reviewed_at', '-created_at')[:30],
+    })
+
+
+@role_required(User.Role.ADMIN)
+@require_POST
+def payment_decide(request, pk):
+    payment = get_object_or_404(Payment.objects.select_related(
+        'booking__customer__user', 'booking__provider__user', 'booking__service'), pk=pk)
+    if payment.status != Payment.Status.AWAITING:
+        messages.info(request, 'That payment has already been decided.')
+        return redirect('payment_approvals')
+
+    decision = request.POST.get('decision')
+    note = request.POST.get('note', '').strip()[:255]
+    booking = payment.booking
+    if decision == 'approve':
+        payment.status = Payment.Status.PAID
+        payment.paid_at = timezone.now()
+        text_customer = f'Your payment for booking #{booking.pk} was approved.'
+        text_provider = f'The payment for booking #{booking.pk} ({booking.service.name}) was approved.'
+    elif decision == 'reject':
+        payment.status = Payment.Status.REJECTED
+        payment.paid_at = None
+        text_customer = (f'Your payment for booking #{booking.pk} was rejected.'
+                         + (f' Reason: {note}' if note else ' Please try again.'))
+        text_provider = None
+    else:
+        messages.error(request, 'Please choose approve or reject.')
+        return redirect('payment_approvals')
+
+    payment.reviewed_by = request.user
+    payment.reviewed_at = timezone.now()
+    payment.admin_note = note
+    payment.save()
+
+    notify(booking.customer.user, Notification.NotificationType.PAYMENT,
+           'Payment ' + ('approved' if decision == 'approve' else 'rejected'), text_customer, '/bookings/')
+    if text_provider:
+        notify(booking.provider.user, Notification.NotificationType.PAYMENT,
+               'Payment approved', text_provider, '/bookings/')
+    messages.success(request, f'Payment #{payment.pk} {payment.get_status_display().lower()}.')
+    return redirect('payment_approvals')
+
+
+# ------------------------------------------------------------------ complaints
+@role_required(User.Role.CUSTOMER, User.Role.BUSINESS, User.Role.SERVICE_PROVIDER)
+def complaint_create(request, pk):
+    """The customer or the provider of a booking can raise a complaint about the other person."""
+    booking = get_object_or_404(Booking.objects.select_related(
+        'customer__user', 'provider__user', 'service'), pk=pk)
+    if request.user.id == booking.customer.user_id:
+        other = booking.provider.user
+    elif request.user.id == booking.provider.user_id:
+        other = booking.customer.user
+    else:
+        raise PermissionDenied
+
+    if request.method == 'POST':
+        form = ComplaintForm(request.POST)
+        if form.is_valid():
+            complaint = form.save(commit=False)
+            complaint.booking = booking
+            complaint.raised_by = request.user
+            complaint.against = other
+            complaint.save()
+            notify_admins(Notification.NotificationType.GENERAL, 'New complaint',
+                          f'{request.user.username} raised a complaint about booking #{booking.pk}: '
+                          f'{complaint.subject}', '/bookings/complaints/')
+            notify(other, Notification.NotificationType.GENERAL, 'A complaint was raised',
+                   f'A complaint was raised about booking #{booking.pk}. An admin will look into it.',
+                   '/bookings/complaints/')
+            messages.success(request, 'Your complaint was sent. An admin will review it.')
+            return redirect('complaint_list')
+    else:
+        form = ComplaintForm()
+    return render(request, 'bookings/complaint_form.html', {'form': form, 'booking': booking, 'other': other})
+
+
+@role_required(User.Role.CUSTOMER, User.Role.BUSINESS, User.Role.SERVICE_PROVIDER, User.Role.ADMIN)
+def complaint_list(request):
+    complaints = Complaint.objects.select_related(
+        'booking__service', 'raised_by', 'against', 'handled_by')
+    if is_admin(request.user):
+        status = request.GET.get('status', '')
+        if status in Complaint.Status.values:
+            complaints = complaints.filter(status=status)
+        return render(request, 'bookings/complaint_list.html', {
+            'view_as': 'admin', 'complaints': complaints, 'selected_status': status,
+            'status_choices': Complaint.Status.choices})
+    return render(request, 'bookings/complaint_list.html', {
+        'view_as': 'user',
+        'made': complaints.filter(raised_by=request.user),
+        'received': complaints.filter(against=request.user)})
+
+
+@role_required(User.Role.ADMIN)
+@require_POST
+def complaint_respond(request, pk):
+    complaint = get_object_or_404(Complaint.objects.select_related('raised_by', 'against'), pk=pk)
+    status = request.POST.get('status')
+    response = request.POST.get('response', '').strip()
+    if status not in Complaint.Status.values:
+        messages.error(request, 'Please choose a valid status.')
+        return redirect('complaint_list')
+    if status in (Complaint.Status.RESOLVED, Complaint.Status.DISMISSED) and not response:
+        messages.error(request, 'Please write a short reply before you resolve or dismiss a complaint.')
+        return redirect('complaint_list')
+
+    complaint.status = status
+    complaint.admin_response = response
+    complaint.handled_by = request.user
+    complaint.save()
+    for person in (complaint.raised_by, complaint.against):
+        notify(person, Notification.NotificationType.GENERAL, 'Complaint updated',
+               f'Complaint #{complaint.pk} ({complaint.subject}) is now: {complaint.get_status_display()}.',
+               '/bookings/complaints/')
+    messages.success(request, f'Complaint #{complaint.pk} updated.')
+    return redirect('complaint_list')

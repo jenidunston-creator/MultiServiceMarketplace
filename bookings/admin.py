@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Quotation, Booking, Payment, Review
+from .models import Quotation, Booking, Payment, Review, Complaint
 
 
 @admin.register(Quotation)
@@ -20,7 +20,7 @@ class BookingAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'booking', 'amount', 'method', 'status', 'paid_at')
+    list_display = ('id', 'booking', 'amount', 'method', 'status', 'paid_at', 'reviewed_by')
     list_filter = ('status', 'method')
 
 
@@ -30,3 +30,10 @@ class ReviewAdmin(admin.ModelAdmin):
     list_filter = ('is_approved', 'rating')
     list_editable = ('is_approved',)
     search_fields = ('provider__provider_name', 'comment')
+
+
+@admin.register(Complaint)
+class ComplaintAdmin(admin.ModelAdmin):
+    list_display = ('id', 'subject', 'booking', 'raised_by', 'against', 'category', 'status', 'created_at')
+    list_filter = ('status', 'category')
+    search_fields = ('subject', 'description', 'raised_by__username')

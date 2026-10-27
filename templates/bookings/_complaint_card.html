@@ -1,0 +1,13 @@
+<div class="card-box mb-3">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+        <h3 class="h6 mb-1">#{{ c.pk }} {{ c.subject }}</h3>
+        <span class="badge-soft {% if c.status == 'RESOLVED' %}badge-confirmed{% elif c.status == 'DISMISSED' %}badge-cancelled{% elif c.status == 'IN_REVIEW' %}badge-progress{% else %}badge-pending{% endif %}">{{ c.get_status_display }}</span>
+    </div>
+    <p class="small text-muted mb-2">{{ c.get_category_display }} · Booking #{{ c.booking.pk }} ({{ c.booking.service.name }}) · {{ c.created_at|date:"d M Y" }}</p>
+    <p class="mb-2">{{ c.description|linebreaksbr }}</p>
+    {% if c.admin_response %}
+    <div class="alert alert-success mb-0 small"><strong>Admin reply:</strong> {{ c.admin_response|linebreaksbr }}</div>
+    {% else %}
+    <p class="small text-muted mb-0">Waiting for an admin to reply.</p>
+    {% endif %}
+</div>

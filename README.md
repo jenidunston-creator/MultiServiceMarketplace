@@ -8,7 +8,6 @@ customers can ask for a live support agent.
 > Final project for the Django course. Built with Django, SQLite, HTML, CSS and Bootstrap 5.
 
 - **GitHub:** https://github.com/jenidunston-creator/MultiServiceMarketplace
-- **Live site:** `DEPLOY LINK`
 
 ---
 
@@ -22,17 +21,19 @@ customers can ask for a live support agent.
 | **Bookings** | Book a service, pay (demo), cancel, and leave a review once the job is completed. Providers update the job status. |
 | **Quotations** | Customers request a quote. The provider replies with a price. The customer accepts (this creates a booking) or declines. |
 | **Reports / dashboards** | One dashboard for each role. The admin dashboard has live totals, bar charts, and a CSV download of all bookings. |
-| **Admin tools** | Activate or deactivate users, verify providers, hide or approve reviews, and answer live support chats. |
+| **Admin tools** | Activate or deactivate users, verify providers, hide or approve reviews, approve payments, answer complaints, and answer live support chats. |
 | **AI assistant (Nova)** | Understands the service, city, date and urgency in a message and shows matching providers. Hands over to a human agent on request. |
+| **Payment approval** | Card and bank payments wait for an admin to approve or reject them. Customers and providers are told the result. |
+| **Complaints** | Customers and providers can report a problem about a booking. An admin replies and marks it resolved or dismissed. |
 | **Responsive design** | Bootstrap 5 and custom CSS. Works on desktop and mobile. |
 
 ## 2. User roles
 
 | Role | Can do |
 |---|---|
-| **Admin** | Everything an admin needs: manage users, verify providers, moderate reviews, see all bookings and quotes, answer support chats, export reports, use the Django admin site. |
-| **Service Provider** (Staff/Manager role) | Add, edit and delete own services, edit own profile, send quotes, update job statuses. |
-| **Customer** (User role) | Browse and compare services, book, request quotes, pay, review, chat with Nova. |
+| **Admin** | Everything an admin needs: manage users, verify providers, moderate reviews, approve or reject payments, answer complaints, see all bookings and quotes, answer support chats, export reports, use the Django admin site. |
+| **Service Provider** (Staff/Manager role) | Add, edit and delete own services, edit own profile, send quotes, update job statuses, report a problem. |
+| **Customer** (User role) | Browse and compare services, book, request quotes, pay, review, report a problem, chat with Nova. |
 | **Business** | Like a customer, and can also manage a team of members from the business dashboard. |
 
 ## 3. Technology
@@ -126,6 +127,10 @@ In the Django admin, set the user's **role** to *Admin* so the Servana admin das
 | `/bookings/new/?service=<id>` | Book a service | Customer, Business |
 | `/bookings/` | Bookings (customer) or jobs (provider) | Logged-in users |
 | `/quotations/` | Quotes and quote requests | Logged-in users |
+| `/bookings/<id>/pay/` | Pay for a booking (demo, then admin approval) | Customer, Business |
+| `/bookings/payments/` | Approve or reject payments | Admin |
+| `/bookings/<id>/complaint/` | Report a problem about a booking | Customer, Business, Provider |
+| `/bookings/complaints/` | Your complaints (admin: all complaints and replies) | Logged-in users |
 | `/communication/` | Chat with Nova | Logged-in users |
 | `/communication/inbox/` | Live support inbox | Admin |
 | `/dashboard/` | Sends you to the dashboard for your role | Logged-in users |
@@ -138,7 +143,7 @@ Main models and how they are related (all by foreign keys or one-to-one links):
 - `User` (custom, with a `role`) has one `CustomerProfile` or `ProviderProfile`, or owns a `Business`.
 - `ServiceCategory` has many `Service`. A provider offers a service through `ServiceProviderService`.
 - A `ServiceRequest` (made by a customer) leads to a `Quotation` and a `Booking`.
-- A `Booking` has one `Payment` and one `Review`.
+- A `Booking` has one `Payment` (approved by an admin), one `Review`, and can have many `Complaint` records (raised by the customer or the provider).
 - `ChatConversation` has many `ChatMessage`. `Notification` belongs to a user.
 
 All models are registered in the Django admin.
@@ -154,7 +159,7 @@ All models are registered in the Django admin.
 ## 11. Notes and limitations
 
 - **Payments are a demo.** The site saves the payment method and status but never takes
-  real money and never stores card numbers.
+  real money and never stores card numbers. Card and bank payments are marked Paid only after an admin approves them. Paying the provider after the job (cash) does not need approval.
 - **Nova is a rule-based assistant** (keywords and database lookups). It does not use an outside AI service.
 - The business dashboard manages a team and shows the business's own bookings. Assigning jobs to
   team members is not built.
@@ -179,7 +184,7 @@ Without those variables the project runs in local development mode.
 | Database with migrations and foreign keys | SQLite, migrations in each app |
 | HTML, CSS, Bootstrap, responsive | `templates/`, `static/css/style.css`, Bootstrap 5 |
 | Login required and role-based access | `accounts/decorators.py` and every view |
-| Admin-only pages restricted | Admin dashboard, support inbox and admin actions |
+| Admin-only pages restricted | Admin dashboard, payment approvals, support inbox and admin actions |
 | Models registered in the Django admin | `admin.py` in every app |
 | Search | Service search by keyword, category and city |
 | Dashboard charts | Bar charts on the admin dashboard |

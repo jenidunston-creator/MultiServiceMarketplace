@@ -33,7 +33,10 @@
                             <span class="badge-soft {% if b.status == 'PENDING' %}badge-pending{% elif b.status == 'CONFIRMED' %}badge-confirmed{% elif b.status == 'IN_PROGRESS' %}badge-progress{% elif b.status == 'COMPLETED' %}badge-done{% else %}badge-cancelled{% endif %}">{{ b.get_status_display }}</span>
                         </td>
                         <td>
-                            {% if b.payment %}{{ b.payment.get_status_display }}{% else %}<span class="text-muted">Not paid</span>{% endif %}
+                            {% if b.payment %}
+                                <span class="badge-soft {% if b.payment.status == 'PAID' %}badge-confirmed{% elif b.payment.status == 'AWAITING' %}badge-pending{% elif b.payment.status == 'REJECTED' or b.payment.status == 'FAILED' %}badge-cancelled{% else %}badge-progress{% endif %}">{{ b.payment.get_status_display }}</span>
+                                {% if b.payment.status == 'REJECTED' and b.payment.admin_note %}<br><small class="text-muted">{{ b.payment.admin_note }}</small>{% endif %}
+                            {% else %}<span class="text-muted">Not paid</span>{% endif %}
                         </td>
                         <td class="text-nowrap">
                             {% if view_as == 'customer' %}
@@ -50,6 +53,7 @@
                                 {% if b.status == 'COMPLETED' and not b.review %}
                                     <a class="btn btn-outline-custom btn-sm" href="{% url 'booking_review' b.pk %}">Leave review</a>
                                 {% endif %}
+                                <a class="btn btn-outline-custom btn-sm" href="{% url 'complaint_create' b.pk %}">Report a problem</a>
                             {% elif view_as == 'provider' %}
                                 <form method="post" action="{% url 'booking_status' b.pk %}" class="d-flex gap-2">
                                     {% csrf_token %}
@@ -61,6 +65,7 @@
                                     </select>
                                     <button class="btn btn-outline-custom btn-sm" type="submit">Update</button>
                                 </form>
+                                <a class="btn btn-outline-custom btn-sm mt-1" href="{% url 'complaint_create' b.pk %}">Report a problem</a>
                             {% endif %}
                         </td>
                     </tr>

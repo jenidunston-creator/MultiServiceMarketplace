@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Report a problem | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Report a problem</h1>
+        <p>Booking #{{ booking.pk }}: {{ booking.service.name }}. An admin will read this and reply.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width:700px;">
+        <form class="card-box" method="post">
+            {% csrf_token %}
+            {% if form.errors %}<div class="alert alert-danger" role="alert">Please fix the problems shown in red below.</div>{% endif %}
+            <p class="text-muted">Your complaint is about <strong>{{ other.get_full_name|default:other.username }}</strong>. Please stay polite and stick to the facts.</p>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                {{ form.category }}
+                {% for error in form.category.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
+                {{ form.subject }}
+                {% for error in form.subject.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% for error in form.description.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+            </div>
+            <button class="btn btn-primary-custom" type="submit">Send complaint</button>
+            <a class="btn btn-outline-custom" href="{% url 'booking_list' %}">Cancel</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

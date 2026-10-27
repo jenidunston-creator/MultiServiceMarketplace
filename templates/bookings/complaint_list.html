@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Complaints | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Complaints</h1>
+        <p>{% if view_as == 'admin' %}Read each complaint, reply, and mark it resolved or dismissed.{% else %}Complaints you sent, and complaints about you. To make a new one, open My Bookings and press Report a problem.{% endif %}</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        {% if view_as == 'admin' %}
+        <form method="get" class="d-flex flex-wrap gap-2 mb-4" role="search">
+            <label class="visually-hidden" for="status">Filter by status</label>
+            <select class="form-select" style="max-width:240px;" id="status" name="status">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-outline-custom" type="submit">Filter</button>
+        </form>
+
+        {% for c in complaints %}
+        <div class="card-box mb-3">
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+                <h2 class="h6 mb-1">#{{ c.pk }} {{ c.subject }}</h2>
+                <span class="badge-soft {% if c.status == 'RESOLVED' %}badge-confirmed{% elif c.status == 'DISMISSED' %}badge-cancelled{% elif c.status == 'IN_REVIEW' %}badge-progress{% else %}badge-pending{% endif %}">{{ c.get_status_display }}</span>
+            </div>
+            <p class="small text-muted mb-2">
+                {{ c.get_category_display }} · Booking #{{ c.booking.pk }} ({{ c.booking.service.name }}) ·
+                From <strong>{{ c.raised_by.username }}</strong> about <strong>{{ c.against.username }}</strong> · {{ c.created_at|date:"d M Y H:i" }}
+            </p>
+            <p>{{ c.description|linebreaksbr }}</p>
+            <form method="post" action="{% url 'complaint_respond' c.pk %}">
+                {% csrf_token %}
+                <div class="row g-2 align-items-start">
+                    <div class="col-md-3">
+                        <label class="form-label small" for="st{{ c.pk }}">Status</label>
+                        <select class="form-select" id="st{{ c.pk }}" name="status">
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if c.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label small" for="rp{{ c.pk }}">Your reply (both people will be told)</label>
+                        <textarea class="form-control" id="rp{{ c.pk }}" name="response" rows="2" style="min-height:48px;">{{ c.admin_response }}</textarea>
+                    </div>
+                    <div class="col-md-2 pt-md-4">
+                        <button class="btn btn-primary-custom w-100" type="submit">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% empty %}
+        <div class="card-box text-center text-muted">No complaints{% if selected_status %} with this status{% endif %}.</div>
+        {% endfor %}
+
+        {% else %}
+        <h2 class="h5">Complaints I sent</h2>
+        {% for c in made %}
+            {% include "bookings/_complaint_card.html" with c=c %}
+        {% empty %}
+        <div class="card-box text-muted mb-4">You have not sent any complaints.</div>
+        {% endfor %}
+
+        <h2 class="h5 mt-4">Complaints about me</h2>
+        {% for c in received %}
+            {% include "bookings/_complaint_card.html" with c=c %}
+        {% empty %}
+        <div class="card-box text-muted">There are no complaints about you.</div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

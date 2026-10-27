@@ -2,7 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from services.models import ServiceRequest
-from .models import Payment, Quotation, Review
+from .models import Complaint, Payment, Quotation, Review
 
 
 class RequestForm(forms.ModelForm):
@@ -83,3 +83,22 @@ class ReviewForm(forms.ModelForm):
         widgets = {
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+
+class ComplaintForm(forms.ModelForm):
+    class Meta:
+        model = Complaint
+        fields = ['category', 'subject', 'description']
+        labels = {'category': 'What went wrong?', 'subject': 'Short title',
+                  'description': 'Tell us what happened'}
+        widgets = {
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 150}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+        }
+
+    def clean_description(self):
+        text = self.cleaned_data['description'].strip()
+        if len(text) < 10:
+            raise forms.ValidationError('Please give a little more detail (at least 10 characters).')
+        return text
