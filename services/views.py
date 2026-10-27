@@ -82,10 +82,18 @@ def service_detail(request, pk):
     reviews = listing.provider.received_reviews.filter(is_approved=True).select_related('customer__user')
     can_edit = request.user.is_authenticated and can_manage(request.user, listing)
 
+    # Only customers and businesses can book or ask for a quote (visitors are sent to log in).
+    if request.user.is_authenticated:
+        can_book = request.user.role in (User.Role.CUSTOMER, User.Role.BUSINESS) \
+            and not request.user.is_superuser and listing.provider.user_id != request.user.id
+    else:
+        can_book = True
+
     return render(request, 'services/service_detail.html', {
         'listing': listing,
         'reviews': reviews,
         'can_edit': can_edit,
+        'can_book': can_book,
     })
 
 

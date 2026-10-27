@@ -5,7 +5,6 @@ from .models import (
     CustomerProfile,
     ProviderProfile,
     Business,
-    BusinessMember,
 )
 
 
@@ -42,10 +41,3 @@ class BusinessAdmin(admin.ModelAdmin):
     list_display = ('business_name', 'owner', 'city', 'verification_status')
     list_filter = ('verification_status', 'city')
     search_fields = ('business_name', 'owner__username')
-
-
-@admin.register(BusinessMember)
-class BusinessMemberAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'business', 'position', 'email', 'phone', 'is_active')
-    search_fields = ('full_name', 'email', 'business__business_name')
-    list_filter = ('is_active',)

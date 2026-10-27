@@ -58,11 +58,17 @@
             <div class="col-lg-4">
                 <aside class="card-box" style="position:sticky; top:90px;">
                     <p class="price mb-1">${{ listing.price|floatformat:"-2" }} <small>incl. GST</small></p>
+                    {% if can_book %}
                     <p class="small text-muted">Final price depends on the job. Request a quote or book directly.</p>
 
                     <a href="{% url 'booking_create' %}?service={{ listing.pk }}" class="btn btn-primary-custom w-100 mb-2">Book now</a>
                     <a href="{% url 'quote_request' listing.pk %}" class="btn btn-outline-custom w-100 mb-2">Request a quote</a>
                     <a href="/communication/" class="btn btn-outline-custom w-100">Ask the AI assistant</a>
+                    {% else %}
+                    <div class="alert alert-info small mb-0" role="status">
+                        {% if listing.provider.user_id == user.id %}This is your own service, so you cannot book it.{% else %}Only customer and business accounts can book services. You are logged in as {{ user.get_role_display|lower }}.{% endif %}
+                    </div>
+                    {% endif %}
 
                     {% if can_edit %}
                     <hr>

@@ -4,7 +4,6 @@
 {% block dash_sidebar %}
     <h2>Business</h2>
     <a class="active" href="{% url 'business_dashboard' %}">Overview</a>
-    <a href="#employees">Team</a>
     <a href="{% url 'service_list' %}">Find services</a>
     <a href="#recent">Recent bookings</a>
     <a href="{% url 'booking_list' %}">All bookings</a>
@@ -15,53 +14,13 @@
 
 {% block dash_content %}
 <h1 class="h2 mb-1">{{ business.business_name }}</h1>
-<p class="text-muted">Manage your team and the services your business books.</p>
+<p class="text-muted">Find, book and track the services your business needs.</p>
 
 <div class="row g-3 mb-4" id="reports">
-    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ employee_count }}</div><div class="lbl">Team members</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ total_count }}</div><div class="lbl">Total bookings</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ open_count }}</div><div class="lbl">Open bookings</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ month_count }}</div><div class="lbl">Bookings this month</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">${{ month_spent|floatformat:"-2" }}</div><div class="lbl">Spent this month</div></div></div>
-</div>
-
-<div class="d-flex justify-content-between align-items-center mb-2" id="employees">
-    <h2 class="h5 mb-0">Team</h2>
-    <button class="btn btn-primary-custom btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#addEmployee">+ Add team member</button>
-</div>
-
-<div class="collapse mb-3" id="addEmployee">
-    <form class="card-box" method="post" action="{% url 'business_employee_add' %}">
-        {% csrf_token %}
-        <p class="small text-muted">Type in the details of the person. They do not need a Servana account.</p>
-        <div class="row g-3">
-            <div class="col-md-6"><label class="form-label" for="emp_name">Full name</label><input class="form-control" id="emp_name" name="full_name" maxlength="120" required></div>
-            <div class="col-md-6"><label class="form-label" for="emp_position">Position</label><input class="form-control" id="emp_position" name="position" maxlength="100" placeholder="e.g. Office manager"></div>
-            <div class="col-md-6"><label class="form-label" for="emp_email">Email (optional)</label><input class="form-control" id="emp_email" name="email" type="email"></div>
-            <div class="col-md-6"><label class="form-label" for="emp_phone">Phone (optional)</label><input class="form-control" id="emp_phone" name="phone" maxlength="30" placeholder="e.g. 021 555 0101"></div>
-        </div>
-        <button class="btn btn-primary-custom mt-3" type="submit">Add to team</button>
-    </form>
-</div>
-
-<div class="table-wrap table-responsive mb-4">
-    <table class="table mb-0 align-middle">
-        <thead><tr><th>Name</th><th>Position</th><th>Email</th><th>Phone</th><th>Added</th><th>Actions</th></tr></thead>
-        <tbody>
-            {% for m in members %}
-            <tr>
-                <td>{{ m.full_name }}</td><td>{{ m.position|default:"-" }}</td><td>{{ m.email|default:"-" }}</td><td>{{ m.phone|default:"-" }}</td><td>{{ m.joined_at|date:"d M Y" }}</td>
-                <td>
-                    <form method="post" action="{% url 'business_employee_remove' m.pk %}" class="d-inline">
-                        {% csrf_token %}
-                        <button class="btn btn-danger-soft btn-sm" type="submit" onclick="return confirm('Remove this person from your team?');">Remove</button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="6" class="text-center text-muted py-4">No team members yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </div>
 
 <h2 class="h5" id="recent">Recent bookings</h2>

@@ -22,6 +22,7 @@ urlpatterns = [
     # same page, second address (your menu link uses /chat/notifications/)
     path('chat/notifications/', communication_views.notifications),
     path('chat/', communication_views.chat),
+
     # dashboards (one for each role)
     path('dashboard/', account_views.dashboard_redirect, name='dashboard'),
     path('dashboard/customer/', account_views.customer_dashboard, name='customer_dashboard'),
@@ -35,9 +36,6 @@ urlpatterns = [
     path('dashboard/admin-panel/reviews/<int:pk>/toggle/', account_views.admin_review_toggle, name='admin_review_toggle'),
     path('dashboard/admin-panel/bookings.csv', account_views.admin_bookings_csv, name='admin_bookings_csv'),
 
-    # business actions
-    path('dashboard/business/employees/add/', account_views.business_employee_add, name='business_employee_add'),
-    path('dashboard/business/employees/<int:pk>/remove/', account_views.business_employee_remove, name='business_employee_remove'),
 ]
 
 # show uploaded images while DEBUG = True

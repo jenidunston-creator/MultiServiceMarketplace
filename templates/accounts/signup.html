@@ -23,9 +23,9 @@
                 <div class="mb-3">
                     <label class="form-label" for="id_role">I am joining as</label>
                     <select class="form-select" id="id_role" name="role" required>
-                        <option value="customer" {% if request.GET.role == 'customer' or not request.GET.role %}selected{% endif %}>Customer (find services)</option>
-                        <option value="provider" {% if request.GET.role == 'provider' %}selected{% endif %}>Service provider (offer services)</option>
-                        <option value="business" {% if request.GET.role == 'business' %}selected{% endif %}>Business (company with employees)</option>
+                        <option value="customer" {% if request.GET.role == 'customer' or not request.GET.role %}selected{% endif %}>Customer (a person who needs a service)</option>
+                        <option value="provider" {% if request.GET.role == 'provider' %}selected{% endif %}>Service provider (a person or company that offers services)</option>
+                        <option value="business" {% if request.GET.role == 'business' %}selected{% endif %}>Business (a company that needs services)</option>
                     </select>
                 </div>
 

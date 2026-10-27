@@ -33,9 +33,9 @@ customers can ask for a live support agent.
 | Role | Can do |
 |---|---|
 | **Admin** | Everything an admin needs: manage users, verify providers, moderate reviews, approve or reject payments, answer complaints, see all bookings and quotes, answer support chats, export reports, use the Django admin site. |
-| **Service Provider** (Staff/Manager role) | Add, edit and delete own services, edit own profile, send quotes, update job statuses, report a problem. |
-| **Customer** (User role) | Browse and compare services, book, request quotes, pay, review, report a problem, chat with Nova. |
-| **Business** | Like a customer, and can also keep a team list (name, position, email, phone) on the business dashboard. Team members do not need an account. |
+| **Service Provider** (Staff/Manager role) | A person or a company that offers services. Can add, edit and delete own services, edit own profile, send quotes, update job statuses, report a problem. |
+| **Customer** (User role) | An individual who needs a service. Can browse and compare services, book, request quotes, pay, review, report a problem, chat with Nova. |
+| **Business** | A company that needs services from providers. Can book services, ask for quotes, pay, review and report problems, with a dashboard that shows its bookings and spending. |
 
 ## 3. Technology
 
@@ -162,8 +162,7 @@ All models are registered in the Django admin.
 - **Payments are a demo.** The site saves the payment method and status but never takes
   real money and never stores card numbers. Card and bank payments are marked Paid only after an admin approves them. Paying the provider after the job (cash) does not need approval.
 - **Nova is a rule-based assistant** (keywords and database lookups). It does not use an outside AI service.
-- The business dashboard keeps a team list (details typed in by the owner, no account needed) and shows the
-  business's own bookings. Assigning jobs to team members is not built.
+- A provider is one account, even when it is a company with employees. Employees do not have their own accounts.
 - The project uses the default SQLite database, which is fine for a course project.
   A busy real website would use PostgreSQL or MySQL instead.
 

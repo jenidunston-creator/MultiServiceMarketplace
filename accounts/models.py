@@ -123,29 +123,3 @@ class Business(models.Model):
 
     def __str__(self):
         return self.business_name
-
-
-class BusinessMember(models.Model):
-    """A person who works for a business. They do not need a Servana account."""
-    business = models.ForeignKey(
-        Business,
-        on_delete=models.CASCADE,
-        related_name='members'
-    )
-    full_name = models.CharField(max_length=120)
-    position = models.CharField(max_length=100, blank=True)
-    email = models.EmailField(blank=True)
-    phone = models.CharField(max_length=30, blank=True)
-    # old optional link to an account (not used for new team members)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='business_memberships'
-    )
-    joined_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"{self.full_name} - {self.business.business_name}"

@@ -10,11 +10,11 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .decorators import role_required
-from .forms import ROLE_MAP, ProviderProfileForm, SignupForm, TeamMemberForm
+from .forms import ROLE_MAP, ProviderProfileForm, SignupForm
 from bookings.models import Booking, Complaint, Payment, Quotation, Review
 from communication.models import ChatConversation
 from services.models import ServiceProviderService, ServiceRequest
-from .models import Business, BusinessMember, ProviderProfile, User
+from .models import Business, ProviderProfile, User
 
 
 def signup_view(request):
@@ -124,39 +124,12 @@ def business_dashboard(request):
     spent = this_month.exclude(status=Booking.Status.CANCELLED).aggregate(t=Sum('agreed_price'))['t']
     return render(request, 'dashboards/business.html', {
         'business': business,
-        'members': business.members.order_by('-is_active', 'full_name'),
-        'employee_count': business.members.filter(is_active=True).count(),
+        'total_count': bookings.count(),
         'open_count': bookings.filter(status__in=open_statuses).count(),
         'month_count': this_month.count(),
         'month_spent': spent or 0,
         'recent': bookings.order_by('-created_at')[:8],
     })
-
-
-@role_required(User.Role.BUSINESS)
-@require_POST
-def business_employee_add(request):
-    business = get_business(request.user)
-    form = TeamMemberForm(request.POST, business=business)
-    if form.is_valid():
-        member = form.save(commit=False)
-        member.business = business
-        member.save()
-        messages.success(request, f'{member.full_name} was added to your team.')
-    else:
-        for errors in form.errors.values():
-            for error in errors:
-                messages.error(request, error)
-    return redirect('business_dashboard')
-
-
-@role_required(User.Role.BUSINESS)
-@require_POST
-def business_employee_remove(request, pk):
-    member = get_object_or_404(BusinessMember, pk=pk, business__owner=request.user)
-    member.delete()
-    messages.success(request, 'Team member removed.')
-    return redirect('business_dashboard')
 
 
 # ---------------------------------------------------------------- admin
