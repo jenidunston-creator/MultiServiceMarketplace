@@ -32,10 +32,12 @@
 <div class="collapse mb-3" id="addEmployee">
     <form class="card-box" method="post" action="{% url 'business_employee_add' %}">
         {% csrf_token %}
-        <p class="small text-muted">The person must already have a Servana account. Enter their username.</p>
+        <p class="small text-muted">Type in the details of the person. They do not need a Servana account.</p>
         <div class="row g-3">
-            <div class="col-md-6"><label class="form-label" for="emp_username">Username</label><input class="form-control" id="emp_username" name="username" required></div>
-            <div class="col-md-6"><label class="form-label" for="emp_position">Position</label><input class="form-control" id="emp_position" name="position" placeholder="e.g. Office manager"></div>
+            <div class="col-md-6"><label class="form-label" for="emp_name">Full name</label><input class="form-control" id="emp_name" name="full_name" maxlength="120" required></div>
+            <div class="col-md-6"><label class="form-label" for="emp_position">Position</label><input class="form-control" id="emp_position" name="position" maxlength="100" placeholder="e.g. Office manager"></div>
+            <div class="col-md-6"><label class="form-label" for="emp_email">Email (optional)</label><input class="form-control" id="emp_email" name="email" type="email"></div>
+            <div class="col-md-6"><label class="form-label" for="emp_phone">Phone (optional)</label><input class="form-control" id="emp_phone" name="phone" maxlength="30" placeholder="e.g. 021 555 0101"></div>
         </div>
         <button class="btn btn-primary-custom mt-3" type="submit">Add to team</button>
     </form>
@@ -43,11 +45,11 @@
 
 <div class="table-wrap table-responsive mb-4">
     <table class="table mb-0 align-middle">
-        <thead><tr><th>Username</th><th>Position</th><th>Joined</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th>Position</th><th>Email</th><th>Phone</th><th>Added</th><th>Actions</th></tr></thead>
         <tbody>
             {% for m in members %}
             <tr>
-                <td>{{ m.user.username }}</td><td>{{ m.position }}</td><td>{{ m.joined_at|date:"d M Y" }}</td>
+                <td>{{ m.full_name }}</td><td>{{ m.position|default:"-" }}</td><td>{{ m.email|default:"-" }}</td><td>{{ m.phone|default:"-" }}</td><td>{{ m.joined_at|date:"d M Y" }}</td>
                 <td>
                     <form method="post" action="{% url 'business_employee_remove' m.pk %}" class="d-inline">
                         {% csrf_token %}
@@ -56,7 +58,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="text-center text-muted py-4">No team members yet.</td></tr>
+            <tr><td colspan="6" class="text-center text-muted py-4">No team members yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>

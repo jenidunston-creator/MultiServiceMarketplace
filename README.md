@@ -8,7 +8,7 @@ customers can ask for a live support agent.
 > Final project for the Django course. Built with Django, SQLite, HTML, CSS and Bootstrap 5.
 
 - **GitHub:** https://github.com/jenidunston-creator/MultiServiceMarketplace
-   - **Live site:** https://jenniferdunston.pythonanywhere.com
+- **Live site:** https://jenniferdunston.pythonanywhere.com
 
 ---
 
@@ -35,7 +35,7 @@ customers can ask for a live support agent.
 | **Admin** | Everything an admin needs: manage users, verify providers, moderate reviews, approve or reject payments, answer complaints, see all bookings and quotes, answer support chats, export reports, use the Django admin site. |
 | **Service Provider** (Staff/Manager role) | Add, edit and delete own services, edit own profile, send quotes, update job statuses, report a problem. |
 | **Customer** (User role) | Browse and compare services, book, request quotes, pay, review, report a problem, chat with Nova. |
-| **Business** | Like a customer, and can also manage a team of members from the business dashboard. |
+| **Business** | Like a customer, and can also keep a team list (name, position, email, phone) on the business dashboard. Team members do not need an account. |
 
 ## 3. Technology
 
@@ -162,8 +162,8 @@ All models are registered in the Django admin.
 - **Payments are a demo.** The site saves the payment method and status but never takes
   real money and never stores card numbers. Card and bank payments are marked Paid only after an admin approves them. Paying the provider after the job (cash) does not need approval.
 - **Nova is a rule-based assistant** (keywords and database lookups). It does not use an outside AI service.
-- The business dashboard manages a team and shows the business's own bookings. Assigning jobs to
-  team members is not built.
+- The business dashboard keeps a team list (details typed in by the owner, no account needed) and shows the
+  business's own bookings. Assigning jobs to team members is not built.
 - The project uses the default SQLite database, which is fine for a course project.
   A busy real website would use PostgreSQL or MySQL instead.
 

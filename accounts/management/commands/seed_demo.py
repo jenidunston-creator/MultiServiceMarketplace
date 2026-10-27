@@ -142,8 +142,12 @@ class Command(BaseCommand):
                       'verification_status': ProviderProfile.VerificationStatus.VERIFIED})
         business, _ = Business.objects.get_or_create(
             owner=owner, defaults={'business_name': 'Bella Property Group', 'city': 'Auckland'})
-        BusinessMember.objects.get_or_create(
-            business=business, user=customer, defaults={'position': 'Property manager'})
+        for full_name, position, email, phone in [
+                ('Ria Patel', 'Property manager', 'ria@example.com', '021 555 0101'),
+                ('Tom Walker', 'Maintenance coordinator', 'tom@example.com', '021 555 0102')]:
+            BusinessMember.objects.get_or_create(
+                business=business, full_name=full_name,
+                defaults={'position': position, 'email': email, 'phone': phone})
 
         # --- sample listings for the demo provider
         for name, price in [('Regular House Clean', 45), ('End of Tenancy Clean', 280),

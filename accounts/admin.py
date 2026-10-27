@@ -46,5 +46,6 @@ class BusinessAdmin(admin.ModelAdmin):
 
 @admin.register(BusinessMember)
 class BusinessMemberAdmin(admin.ModelAdmin):
-    list_display = ('user', 'business', 'position', 'is_active')
+    list_display = ('full_name', 'business', 'position', 'email', 'phone', 'is_active')
+    search_fields = ('full_name', 'email', 'business__business_name')
     list_filter = ('is_active',)

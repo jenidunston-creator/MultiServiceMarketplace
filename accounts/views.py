@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .decorators import role_required
-from .forms import ROLE_MAP, ProviderProfileForm, SignupForm
+from .forms import ROLE_MAP, ProviderProfileForm, SignupForm, TeamMemberForm
 from bookings.models import Booking, Complaint, Payment, Quotation, Review
 from communication.models import ChatConversation
 from services.models import ServiceProviderService, ServiceRequest
@@ -124,7 +124,7 @@ def business_dashboard(request):
     spent = this_month.exclude(status=Booking.Status.CANCELLED).aggregate(t=Sum('agreed_price'))['t']
     return render(request, 'dashboards/business.html', {
         'business': business,
-        'members': business.members.select_related('user').order_by('-is_active', 'user__username'),
+        'members': business.members.order_by('-is_active', 'full_name'),
         'employee_count': business.members.filter(is_active=True).count(),
         'open_count': bookings.filter(status__in=open_statuses).count(),
         'month_count': this_month.count(),
@@ -137,21 +137,16 @@ def business_dashboard(request):
 @require_POST
 def business_employee_add(request):
     business = get_business(request.user)
-    username = request.POST.get('username', '').strip()
-    position = request.POST.get('position', '').strip() or 'Team member'
-    person = User.objects.filter(username__iexact=username, is_active=True).first()
-
-    if person is None:
-        messages.error(request, f'No user called "{username}" was found. Ask them to sign up first.')
-    elif person == request.user:
-        messages.error(request, 'You are the owner, so you do not need to add yourself.')
+    form = TeamMemberForm(request.POST, business=business)
+    if form.is_valid():
+        member = form.save(commit=False)
+        member.business = business
+        member.save()
+        messages.success(request, f'{member.full_name} was added to your team.')
     else:
-        member, created = BusinessMember.objects.get_or_create(
-            business=business, user=person, defaults={'position': position})
-        if not created:
-            member.position, member.is_active = position, True
-            member.save()
-        messages.success(request, f'{person.username} is now on your team.')
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
     return redirect('business_dashboard')
 
 

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import User, CustomerProfile, ProviderProfile, Business
+from .models import User, CustomerProfile, ProviderProfile, Business, BusinessMember
 
 
 # The signup page sends: customer / provider / business
@@ -83,3 +83,33 @@ class ProviderProfileForm(forms.ModelForm):
 
     def clean_city(self):
         return self.cleaned_data['city'].strip().title()
+
+
+class TeamMemberForm(forms.ModelForm):
+    """The business owner types in the details of a team member. No account needed."""
+
+    def __init__(self, *args, business=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business
+
+    class Meta:
+        model = BusinessMember
+        fields = ['full_name', 'position', 'email', 'phone']
+
+    def clean_full_name(self):
+        name = ' '.join(self.cleaned_data['full_name'].split())
+        if len(name) < 2:
+            raise forms.ValidationError('Please enter the full name.')
+        if self.business and BusinessMember.objects.filter(
+                business=self.business, full_name__iexact=name).exists():
+            raise forms.ValidationError(f'{name} is already on your team.')
+        return name
+
+    def clean_position(self):
+        return self.cleaned_data['position'].strip() or 'Team member'
+
+    def clean_phone(self):
+        phone = self.cleaned_data['phone'].strip()
+        if phone and not all(ch.isdigit() or ch in ' +-()' for ch in phone):
+            raise forms.ValidationError('Use digits, spaces, + - and brackets only.')
+        return phone
