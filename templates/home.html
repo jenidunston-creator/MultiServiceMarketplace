@@ -921,49 +921,106 @@
         </div>
     </section>
 
-    <!-- ===== WHY SERVANA (illustrative, not reviews) ===== -->
+    <!-- ===== WHY SERVANA ===== -->
     <section class="section" id="why-servana" aria-labelledby="why-title">
         <div class="container">
 
             <div class="section-heading">
                 <span class="eyebrow">Why Servana</span>
                 <h2 id="why-title">Making everyday services simpler</h2>
-                <p>Here's how a connected marketplace can help the people who use it.</p>
+                <p>One connected marketplace that saves time for everyone who uses it.</p>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                <div class="col">
+                    <article class="testimonial-card h-100">
+                        <div class="testimonial-person mb-3">
+                            <div class="person-avatar" aria-hidden="true">C</div>
+                            <div><strong>For customers</strong></div>
+                        </div>
+                        <ul class="ps-3 mb-0">
+                            <li>Find trusted local providers across New Zealand</li>
+                            <li>Compare prices, ratings and quotes in one place</li>
+                            <li>Book online and pay securely</li>
+                            <li>Leave a review after the job</li>
+                        </ul>
+                    </article>
+                </div>
+                <div class="col">
+                    <article class="testimonial-card h-100">
+                        <div class="testimonial-person mb-3">
+                            <div class="person-avatar" aria-hidden="true">P</div>
+                            <div><strong>For providers</strong></div>
+                        </div>
+                        <ul class="ps-3 mb-0">
+                            <li>Get found by customers in your area</li>
+                            <li>Keep requests and quotes tidy in one dashboard</li>
+                            <li>Get notified of new jobs straight away</li>
+                            <li>Build your reputation with reviews</li>
+                        </ul>
+                    </article>
+                </div>
+                <div class="col">
+                    <article class="testimonial-card h-100">
+                        <div class="testimonial-person mb-3">
+                            <div class="person-avatar" aria-hidden="true">B</div>
+                            <div><strong>For businesses</strong></div>
+                        </div>
+                        <ul class="ps-3 mb-0">
+                            <li>Request services for your company in one place</li>
+                            <li>Track jobs, bookings and monthly spending</li>
+                            <li>Work with verified providers</li>
+                            <li>Keep a clear record of every booking</li>
+                        </ul>
+                    </article>
+                </div>
+                <div class="col">
+                    <article class="testimonial-card h-100">
+                        <div class="testimonial-person mb-3">
+                            <div class="person-avatar" aria-hidden="true">A</div>
+                            <div><strong>For admins</strong></div>
+                        </div>
+                        <ul class="ps-3 mb-0">
+                            <li>Approve card and bank payments</li>
+                            <li>Answer and resolve complaints</li>
+                            <li>Verify providers and moderate reviews</li>
+                            <li>Manage users and view booking reports</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if home_reviews %}
+    <!-- ===== REAL REVIEWS FROM CUSTOMERS ===== -->
+    <section class="section section-soft" id="reviews" aria-labelledby="reviews-title">
+        <div class="container">
+
+            <div class="section-heading">
+                <span class="eyebrow">Reviews</span>
+                <h2 id="reviews-title">What customers say</h2>
+                <p>Latest reviews from customers after completed jobs.</p>
             </div>
 
             <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for review in home_reviews %}
                 <div class="col">
-                    <article class="testimonial-card">
-                        <blockquote>Having discovery, quotes and bookings together makes it far easier to organise household jobs without chasing multiple providers.</blockquote>
+                    <article class="testimonial-card h-100">
+                        <p class="mb-2" aria-label="{{ review.rating }} out of 5">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</p>
+                        <blockquote>{{ review.comment }}</blockquote>
                         <div class="testimonial-person">
-                            <div class="person-avatar" aria-hidden="true">C</div>
-                            <div><strong>For customers</strong><span>Illustrative example</span></div>
+                            <div class="person-avatar" aria-hidden="true">{{ review.customer.user.first_name|default:review.customer.user.username|slice:":1"|upper }}</div>
+                            <div><strong>{{ review.customer.user.first_name|default:review.customer.user.username }}</strong>
+                                <span>{{ review.booking.service.name }} by {{ review.provider.provider_name }}</span></div>
                         </div>
                     </article>
                 </div>
-                <div class="col">
-                    <article class="testimonial-card">
-                        <blockquote>A central place for requests and quotes helps providers keep customer enquiries tidy and respond faster.</blockquote>
-                        <div class="testimonial-person">
-                            <div class="person-avatar" aria-hidden="true">P</div>
-                            <div><strong>For providers</strong><span>Illustrative example</span></div>
-                        </div>
-                    </article>
-                </div>
-                <div class="col">
-                    <article class="testimonial-card">
-                        <blockquote>AI-guided questions help people explain what they need before choosing a service, saving time on both sides.</blockquote>
-                        <div class="testimonial-person">
-                            <div class="person-avatar" aria-hidden="true">A</div>
-                            <div><strong>AI-assisted discovery</strong><span>Illustrative example</span></div>
-                        </div>
-                    </article>
-                </div>
+                {% endfor %}
             </div>
-
-            <p class="text-center text-muted small mt-4 mb-0">These are illustrative examples, not verified customer reviews.</p>
         </div>
     </section>
+    {% endif %}
 
     <!-- ===== FAQ ===== -->
     <section class="section section-soft" id="faq" aria-labelledby="faq-title">

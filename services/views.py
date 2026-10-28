@@ -8,6 +8,7 @@ from accounts.decorators import role_required
 from accounts.models import User
 from .forms import ServiceListingForm
 from .models import ServiceCategory, ServiceProviderService
+from bookings.models import Review
 
 
 def with_ratings(queryset):
@@ -24,6 +25,15 @@ def can_manage(user, listing):
     if user.is_superuser or user.role == User.Role.ADMIN:
         return True
     return listing.provider.user_id == user.id
+
+
+# ---------- HOME PAGE (shows the latest real reviews) ----------
+def home(request):
+    reviews = (Review.objects.filter(is_approved=True)
+               .exclude(comment='')
+               .select_related('customer__user', 'provider', 'booking__service')
+               .order_by('-created_at')[:3])
+    return render(request, 'home.html', {'home_reviews': reviews})
 
 
 # ---------- READ (list + search + filter) ----------

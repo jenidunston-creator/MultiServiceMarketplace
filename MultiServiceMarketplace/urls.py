@@ -6,12 +6,13 @@ from django.views.generic import TemplateView
 
 from accounts import views as account_views
 from communication import views as communication_views
+from services import views as services_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     # home page
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', services_views.home, name='home'),
 
     # apps
     path('accounts/', include('accounts.urls')),
