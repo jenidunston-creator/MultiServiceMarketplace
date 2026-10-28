@@ -143,75 +143,111 @@ class Command(BaseCommand):
         business, _ = Business.objects.get_or_create(
             owner=owner, defaults={'business_name': 'Bella Property Group', 'city': 'Auckland'})
 
-        # --- sample listings for the demo provider
-        for name, price in [('Regular House Clean', 45), ('End of Tenancy Clean', 280),
-                            ('Window Cleaning', 120), ('Carpet Cleaning', 140),
-                            ('Gutter Cleaning', 150), ('House Washing', 220)]:
-            ServiceProviderService.objects.get_or_create(
-                provider=profile, service=Service.objects.get(name=name),
-                defaults={'price': price, 'experience_years': 6,
-                          'availability': 'Monday to Saturday, 8am to 5pm',
-                          'description': f'{name} by Sparkle Home Care. Eco-friendly products included.'})
-
-
-        # --- more demo providers in other NZ cities, so searches by city show results
-        more = [
-            ('demo_wellington', 'Harbour Plumbing Co.', 'Wellington', 'Wellington City, Hutt Valley',
-             [('Plumbing', 90), ('Electrical Work', 105), ('Gasfitting', 120), ('Drainage & Drain Unblocking', 130)]),
-            ('demo_christchurch', 'Canterbury Home Services', 'Christchurch', 'Christchurch and Selwyn',
-             [('Painting', 55), ('Heat Pump Install & Service', 170), ('Insulation & Ventilation', 190), ('Handyman', 70)]),
-            ('demo_hamilton', 'Waikato Garden & Property', 'Hamilton', 'Hamilton and Cambridge',
-             [('Lawn Mowing & Gardens', 55), ('Tree Felling & Removal', 190), ('Section Clearing', 120), ('Fencing & Decking', 90)]),
-            ('demo_tauranga', 'Bay Mobile Care', 'Tauranga', 'Tauranga and Mount Maunganui',
-             [('Mobile Mechanic', 105), ('Car Detailing', 115), ('Dog Walking', 30), ('Cat Sitting', 25), ('Aquarium Maintenance', 60), ('Mobile Dog Grooming', 85)]),
-            ('demo_dunedin', 'Otago Cleaners & Movers', 'Dunedin', 'Dunedin and Mosgiel',
-             [('Regular House Clean', 48), ('Carpet Cleaning', 135), ('Furniture Removals', 125), ('Man with a Van', 85)]),
-            ('demo_queenstown', 'Southern Lakes Wellbeing & Events', 'Queenstown', 'Queenstown and Wanaka',
-             [('Personal Training', 75), ('Mobile Massage', 105), ('Photographer', 260), ('DJ & Sound', 290)]),
-            ('demo_rotorua', 'Rotorua Business Hub', 'Rotorua', 'Rotorua and Taupo',
-             [('Bookkeeping & GST Returns', 70), ('Website Help for Small Business', 140), ('Computer & Wi-Fi Support', 75), ('Virtual Assistant', 45)]),
+        # --- demo providers. Each one offers ONLY services that fit its own business.
+        # (username, business name, city, area, price factor, list of service names)
+        providers = [
+            ('demo_provider', 'Sparkle Home Care', 'Auckland', 'Auckland Central, North Shore, West Auckland', 1.0, [
+                'Regular House Clean', 'End of Tenancy Clean', 'Carpet Cleaning', 'Airbnb Turnover Clean',
+                'Office & Commercial Cleaning', 'Oven & BBQ Cleaning', 'Spring Clean', 'Upholstery Cleaning',
+                'Post-Construction Clean', 'Window Cleaning', 'House Washing', 'Gutter Cleaning',
+                'Mould Washing', 'Dry Cleaning Pickup']),
+            ('demo_wellington', 'Harbour Plumbing Co.', 'Wellington', 'Wellington City, Hutt Valley', 1.05, [
+                'Plumbing', 'Electrical Work', 'Gasfitting', 'Drainage & Drain Unblocking',
+                'Hot Water Cylinder Repair', 'Leak Detection', 'Septic Tank Service',
+                'Bathroom Waterproofing', 'Shower Screen Install', 'Appliance Repair',
+                'Chimney & Fireplace Service']),
+            ('demo_christchurch', 'Canterbury Home Services', 'Christchurch', 'Christchurch and Selwyn', 1.0, [
+                'Painting', 'Spray Painting & Roof Painting', 'Wallpaper Hanging', 'Handyman',
+                'Furniture Assembly', 'Door & Lock Repair', 'Garage Door Repair', 'Glazing & Window Repair',
+                'Tiling & Flooring', 'Curtains & Blinds', 'Locksmith', 'Heat Pump Install & Service',
+                'Insulation & Ventilation', 'Mould & Damp Treatment', 'Home Energy Assessment',
+                'Dehumidifier & Ventilation Fit', 'Double Glazing', 'Skylight Install',
+                'Pest Control', 'Asbestos Testing']),
+            ('demo_hamilton', 'Waikato Garden & Property', 'Hamilton', 'Hamilton and Cambridge', 0.95, [
+                'Lawn Mowing & Gardens', 'Fencing & Decking', 'Rubbish Removal', 'Tree Felling & Removal',
+                'Section Clearing', 'Landscaping & Retaining Walls', 'Irrigation & Water Tanks',
+                'Farm Fencing', 'Firewood Delivery', 'Pool & Spa Maintenance', 'Weed Control & Spraying',
+                'Compost & Mulch Delivery', 'Beekeeping & Honey Services', 'Greenhouse & Vege Garden Setup']),
+            ('demo_tauranga', 'Bay Mobile Care', 'Tauranga', 'Tauranga and Mount Maunganui', 1.0, [
+                'Mobile Mechanic', 'Car Servicing & WOF', 'Car Detailing', 'Tyre Fitting & Wheel Alignment',
+                'Panel Beating & Paint', 'Car Battery Replacement', 'Roadside Assistance',
+                'Motorbike Servicing', 'Windscreen Repair', 'Auto Electrician', 'Boat & Marine Services']),
+            ('demo_dunedin', 'Otago Cleaners & Movers', 'Dunedin', 'Dunedin and Mosgiel', 0.95, [
+                'Regular House Clean', 'Carpet Cleaning', 'Furniture Removals', 'Man with a Van',
+                'Same Day Parcel Delivery', 'Courier & Freight', 'Storage Help', 'Piano Moving',
+                'Rubbish & Hard Waste Pickup', 'Cars & Vehicle Transport']),
+            ('demo_queenstown', 'Southern Lakes Wellbeing & Events', 'Queenstown', 'Queenstown and Wanaka', 1.1, [
+                'Mobile Massage', 'Personal Training', 'Physiotherapy at Home', 'Yoga & Pilates',
+                'Nutrition Coaching', 'Counselling', 'Massage Therapy (Clinic)', 'Osteopath & Chiropractor',
+                'Boxing & Fitness Classes', 'Photographer', 'Videographer', 'DJ & Sound', 'Wedding Planner',
+                'Bouncy Castle & Party Hire', 'Florist', 'Celebrant', 'Live Band & Musician', 'Cake Maker',
+                'Face Painter', 'MC & Host', 'Photo Booth Hire', 'Kids Party Entertainer',
+                'Marquee & Event Hire', 'Event Help', 'Catering']),
+            ('demo_rotorua', 'Rotorua Business Hub', 'Rotorua', 'Rotorua and Taupo', 0.95, [
+                'Bookkeeping & GST Returns', 'Payroll Services', 'Business Plan Help',
+                'Social Media Management', 'Virtual Assistant', 'Translation Services',
+                'Tax Help for Sole Traders', 'Graphic Design', 'Website Help for Small Business',
+                'App & Software Development', 'Cyber Security Check', 'Computer & Wi-Fi Support',
+                'Printer & Network Setup', 'Data Recovery & Backup', 'Phone & Laptop Repair']),
+            ('demo_nelson', 'Nelson Solar & Smart Home', 'Nelson', 'Nelson, Richmond and Motueka', 1.0, [
+                'Solar Panel Installation', 'EV Charger Installation', 'Battery & Backup Power',
+                'Smart Home Setup', 'CCTV & Alarm Installation']),
+            ('demo_builder', 'Manawatu Builders & Roofing', 'Palmerston North', 'Palmerston North and Feilding', 1.0, [
+                'Builder (Renovations)', 'Carpentry', 'Roofing', 'Plastering & Gib Stopping',
+                'Concrete & Driveways', 'Bathroom Renovation', 'Kitchen Renovation', 'Building Consent Help',
+                'Architectural Drafting', 'Scaffolding', 'Demolition', 'Insulation Install',
+                'Garden Shed & Sleepout Build', 'Deck Staining']),
+            ('demo_pets', 'Paws & Whiskers Pet Care', 'Napier', 'Napier and Hastings', 1.0, [
+                'Dog Walking', 'Cat Sitting', 'Pet Sitting', 'Mobile Dog Grooming', 'Dog Training',
+                'Pet Boarding', 'Mobile Vet Visit', 'Pet Taxi', 'Aquarium Maintenance']),
+            ('demo_beauty', 'Glow Mobile Beauty', 'Wellington', 'Wellington and Lower Hutt', 1.0, [
+                'Mobile Hairdresser', 'Makeup Artist', 'Wedding Hair & Makeup', 'Nail Technician',
+                'Barber (Mobile)', 'Beauty Therapist', 'Eyelash & Brow', 'Personal Stylist',
+                'Tailoring & Alterations']),
+            ('demo_education', 'Otago Learning & Coaching', 'Dunedin', 'Dunedin and Mosgiel', 1.0, [
+                'Tutoring (NCEA & School)', 'University Study Help', 'Music Lessons', 'Driving Lessons',
+                'English Language Lessons', 'Te Reo Maori Lessons',
+                'Language Lessons (Chinese, Hindi, Spanish)', 'Swimming Lessons', 'Coding for Kids',
+                'Sports Coaching']),
+            ('demo_family', 'Kind Hands Family Care', 'Christchurch', 'Christchurch and Selwyn', 1.0, [
+                'Babysitting & Nanny', 'After School Care', 'Elderly Home Care', 'Disability Support Worker',
+                'Meal Prep & Home Cooking', 'Respite Care', 'Postnatal Doula Support',
+                'Companion & Errands', 'Household Helper']),
         ]
-        for username, biz_name, city, area, offers in more:
-            user = self.make_user(username, User.Role.SERVICE_PROVIDER,
-                                  first_name=biz_name.split()[0], last_name='Provider')
-            prof, _ = ProviderProfile.objects.get_or_create(
-                user=user,
-                defaults={'provider_name': biz_name, 'city': city, 'service_area': area,
-                          'experience_years': 5, 'bio': f'Trusted local team in {city}.',
-                          'verification_status': ProviderProfile.VerificationStatus.VERIFIED})
-            for name, price in offers:
-                ServiceProviderService.objects.get_or_create(
-                    provider=prof, service=Service.objects.get(name=name),
-                    defaults={'price': price, 'experience_years': 5,
-                              'availability': 'Monday to Saturday, 8am to 5pm',
-                              'description': f'{name} by {biz_name}. Friendly, reliable and fully insured.'})
 
-
-        # --- make every category available somewhere: each provider offers all services in their specialities
-        specialities = {
-            'demo_provider': (profile, ['Cleaning', 'Personal'], 1.0),
-        }
-        extra_specs = {
-            'demo_wellington': (['Home Maintenance'], 1.05),
-            'demo_christchurch': (['Energy & Healthy Homes', 'Building & Construction'], 1.0),
-            'demo_hamilton': (['Outdoor & Rural', 'Family & Care'], 0.95),
-            'demo_tauranga': (['Vehicle Services', 'Pets'], 1.0),
-            'demo_dunedin': (['Moving & Delivery', 'Education'], 0.95),
-            'demo_queenstown': (['Health & Wellbeing', 'Events & Creative'], 1.1),
-            'demo_rotorua': (['Business & Finance', 'Technical'], 0.95),
-        }
-        for username, (cats, factor) in extra_specs.items():
-            specialities[username] = (ProviderProfile.objects.get(user__username=username), cats, factor)
-        for username, (prof, cats, factor) in specialities.items():
-            for service in Service.objects.filter(category__name__in=cats):
+        demo_usernames = [p[0] for p in providers]
+        category_of = {n: c for c, items in CATEGORIES.items() for n, _ in items}
+        for username, biz_name, city, area, factor, offers in providers:
+            if username == 'demo_provider':
+                prof = profile
+            else:
+                user = self.make_user(username, User.Role.SERVICE_PROVIDER,
+                                      first_name=biz_name.split()[0], last_name='Provider')
+                prof, _ = ProviderProfile.objects.get_or_create(
+                    user=user,
+                    defaults={'provider_name': biz_name, 'city': city, 'service_area': area,
+                              'experience_years': 5, 'bio': f'Trusted local team in {city}.',
+                              'verification_status': ProviderProfile.VerificationStatus.VERIFIED})
+            # remove old demo listings that do not suit this business
+            prof.offered_services.exclude(service__name__in=offers).delete()
+            for name in offers:
+                # a name may exist twice in an older database: take the one in the right category
+                matches = Service.objects.filter(name=name).order_by('id')
+                service = matches.filter(category__name=category_of[name]).first() or matches.first()
                 ServiceProviderService.objects.get_or_create(
                     provider=prof, service=service,
                     defaults={'price': round(float(service.base_price) * factor),
                               'experience_years': prof.experience_years or 5,
                               'availability': 'Monday to Saturday, 8am to 5pm',
-                              'description': f'{service.name} by {prof.provider_name}. Friendly, reliable and fully insured.'})
+                              'description': f'{name} by {prof.provider_name}. Friendly, reliable and fully insured.'})
+
+        # check: every service in the catalogue is offered by at least one demo provider
+        offered = {n for p in providers for n in p[5]}
+        missing = [n for cat in CATEGORIES.values() for n, _ in cat if n not in offered]
+        if missing:
+            self.stdout.write(self.style.WARNING(f'Not offered by any demo provider: {missing}'))
 
         self.stdout.write(self.style.SUCCESS('Demo data is ready.'))
         self.stdout.write(f'Password for every demo account: {DEMO_PASSWORD}')
         self.stdout.write('Usernames: admin, demo_customer, demo_provider, demo_business '
-                          '(plus demo_wellington, demo_christchurch, demo_hamilton, demo_tauranga, demo_dunedin, demo_queenstown, demo_rotorua)')
+                          '(plus ' + ', '.join(demo_usernames[1:]) + ')')
