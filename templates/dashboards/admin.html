@@ -8,7 +8,8 @@
     <a href="#users">Users</a>
     <a href="#verify">Verify providers</a>
     <a href="#reviews">Reviews</a>
-    <a href="{% url 'payment_approvals' %}">Payment approvals{% if payments_waiting %} ({{ payments_waiting }}){% endif %}</a>
+    <a href="{% url 'admin_verifications' %}">ID checks{% if ids_waiting %} ({{ ids_waiting }}){% endif %}</a>
+    <a href="{% url 'payment_approvals' %}">Payments (held money){% if payments_waiting %} ({{ payments_waiting }}){% endif %}</a>
     <a href="{% url 'complaint_list' %}">Complaints{% if complaints_open %} ({{ complaints_open }}){% endif %}</a>
     <a href="{% url 'agent_inbox' %}">Live support</a>
     <a href="{% url 'booking_list' %}">All bookings</a>
@@ -23,11 +24,12 @@
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ user_count }}</div><div class="lbl">Total users</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ provider_count }}</div><div class="lbl">Providers</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ booking_count }}</div><div class="lbl">Bookings</div></div></div>
-    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">${{ revenue|floatformat:"-2" }}</div><div class="lbl">Payments received</div></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">${{ revenue|floatformat:"-2" }}</div><div class="lbl">Money received (held + released)</div></div></div>
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-12 col-md-6"><a class="stat-card d-block text-decoration-none" href="{% url 'payment_approvals' %}"><div class="num">{{ payments_waiting }}</div><div class="lbl">Payments waiting for approval</div></a></div>
+    <div class="col-12 col-md-6"><a class="stat-card d-block text-decoration-none" href="{% url 'admin_verifications' %}"><div class="num">{{ ids_waiting }}</div><div class="lbl">ID checks waiting</div></a></div>
+    <div class="col-12 col-md-6"><a class="stat-card d-block text-decoration-none" href="{% url 'payment_approvals' %}"><div class="num">{{ payments_waiting }}</div><div class="lbl">Payments ready to release</div></a></div>
     <div class="col-12 col-md-6"><a class="stat-card d-block text-decoration-none" href="{% url 'complaint_list' %}"><div class="num">{{ complaints_open }}</div><div class="lbl">Open complaints</div></a></div>
 </div>
 

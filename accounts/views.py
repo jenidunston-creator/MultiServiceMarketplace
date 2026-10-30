@@ -9,12 +9,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from . import security
 from .decorators import role_required
 from .forms import ROLE_MAP, ProviderProfileForm, SignupForm
 from bookings.models import Booking, Complaint, Payment, Quotation, Review
 from communication.models import ChatConversation
 from services.models import ServiceProviderService, ServiceRequest
-from .models import Business, ProviderProfile, User
+from .models import Business, IdentityVerification, ProviderProfile, User
 
 
 def signup_view(request):
@@ -23,11 +24,14 @@ def signup_view(request):
 
     if request.method == 'POST':
         form = SignupForm(request.POST)
+        if security.too_many(f'signup:{security.client_ip(request)}', 8, 3600):
+            messages.error(request, 'Too many sign-ups from this computer. Please try again later.')
+            return render(request, 'accounts/signup.html', {'form': form})
         if form.is_valid():
             user = form.save()
             login(request, user)
-            messages.success(request, 'Welcome to Servana! Your account has been created.')
-            return redirect('dashboard')
+            messages.success(request, 'Welcome to Servana! Please verify your account to start using it.')
+            return redirect('verify_center')
     else:
         # the footer links use ?role=provider etc. to pre-select the account type
         role = request.GET.get('role')
@@ -145,14 +149,17 @@ def admin_dashboard(request):
 
     top_services = Booking.objects.values('service__name').annotate(n=Count('id')).order_by('-n')[:5]
     top_max = top_services[0]['n'] if top_services else 1
-    revenue = Payment.objects.filter(status=Payment.Status.PAID).aggregate(t=Sum('amount'))['t']
+    revenue = Payment.objects.filter(status__in=[Payment.Status.PART_HELD, Payment.Status.HELD, Payment.Status.RELEASED]
+                                     ).aggregate(t=Sum('amount_paid'))['t']
 
     return render(request, 'dashboards/admin.html', {
         'user_count': User.objects.count(),
         'provider_count': ProviderProfile.objects.count(),
         'booking_count': total_bookings,
         'revenue': revenue or 0,
-        'payments_waiting': Payment.objects.filter(status=Payment.Status.AWAITING).count(),
+        'ids_waiting': IdentityVerification.objects.filter(status=IdentityVerification.Status.PENDING).count(),
+        'payments_waiting': Payment.objects.filter(status=Payment.Status.HELD,
+                                                   customer_confirmed_at__isnull=False).count(),
         'complaints_open': Complaint.objects.filter(
             status__in=[Complaint.Status.OPEN, Complaint.Status.IN_REVIEW]).count(),
         'open_chats': ChatConversation.objects.filter(escalated=True, is_active=True).count(),

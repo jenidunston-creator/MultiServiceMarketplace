@@ -1,11 +1,15 @@
-import uuid
+import json
+import logging
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Avg
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -14,8 +18,11 @@ from accounts.models import CustomerProfile, User
 from communication.models import Notification
 from communication.notify import notify, notify_admins
 from services.models import ProviderMatch, ServiceProviderService, ServiceRequest
-from .forms import ComplaintForm, PaymentForm, QuotationForm, RequestForm, ReviewForm
-from .models import Booking, Complaint, Payment, Quotation, Review
+from . import stripe_client
+from .forms import ComplaintForm, QuotationForm, RequestForm, ReviewForm
+from .models import Booking, Complaint, Payment, PaymentTransaction, Quotation, Review
+
+logger = logging.getLogger(__name__)
 
 # these two roles can book services; providers and admins cannot
 BUYER_ROLES = (User.Role.CUSTOMER, User.Role.BUSINESS)
@@ -33,10 +40,13 @@ def customer_profile(user):
 
 
 def get_active_listing(pk):
-    return get_object_or_404(
-        ServiceProviderService.objects.select_related('provider', 'service', 'service__category'),
+    listing = get_object_or_404(
+        ServiceProviderService.objects.select_related('provider__user', 'service', 'service__category'),
         pk=pk, is_active=True,
     )
+    if not listing.provider.user.is_verified:      # never book an unverified provider
+        raise Http404
+    return listing
 
 
 def save_request(form, profile, listing):
@@ -105,9 +115,13 @@ def booking_list(request):
 
     bookings = list(bookings)
     for b in bookings:
-        locked = hasattr(b, 'payment') and b.payment.status in (
-            Payment.Status.PAID, Payment.Status.AWAITING)
-        b.can_pay = b.status != Booking.Status.CANCELLED and not locked
+        pay = getattr(b, 'payment', None)
+        done = pay is not None and (pay.fully_paid or pay.status in (
+            Payment.Status.RELEASED, Payment.Status.REFUNDED))
+        b.can_pay = b.status != Booking.Status.CANCELLED and not done
+        # the customer can confirm the work once it is complete and fully paid
+        b.can_confirm = (pay is not None and pay.status == Payment.Status.HELD
+                         and b.status == Booking.Status.COMPLETED and not pay.customer_confirmed_at)
 
     return render(request, 'bookings/booking_list.html', {
         'bookings': bookings,
@@ -141,6 +155,14 @@ def booking_status(request, pk):
     else:
         raise PermissionDenied
 
+    # nobody starts work until the customer has paid (at least the advance) to Servana
+    if new_status in (Booking.Status.IN_PROGRESS, Booking.Status.COMPLETED):
+        pay = getattr(booking, 'payment', None)
+        if not (pay and pay.money_held):
+            messages.error(request, 'The customer has not paid yet. Ask them to pay the advance or the full '
+                                    'amount first. The money is held safely by Servana until the job is done.')
+            return redirect('booking_list')
+
     booking.status = new_status
     booking.save()
 
@@ -164,61 +186,166 @@ def booking_status(request, pk):
 
 
 # ------------------------------------------------------------------ payment
+def advance_amount(total):
+    """The advance is ADVANCE_PERCENT of the price, rounded to cents."""
+    return (total * Decimal(settings.ADVANCE_PERCENT) / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+
+def get_payable_booking(request, pk):
+    return get_object_or_404(
+        Booking.objects.select_related('service', 'provider'), pk=pk, customer__user=request.user)
+
+
 @role_required(*BUYER_ROLES)
 def booking_pay(request, pk):
-    booking = get_object_or_404(
-        Booking.objects.select_related('service', 'provider'), pk=pk, customer__user=request.user)
+    booking = get_payable_booking(request, pk)
 
     if booking.status == Booking.Status.CANCELLED:
         messages.error(request, 'This booking was cancelled, so it cannot be paid.')
         return redirect('booking_list')
 
     payment = Payment.objects.filter(booking=booking).first()
-    if payment and payment.status == Payment.Status.PAID:
-        messages.info(request, 'This booking is already paid.')
+    if payment and payment.status in (Payment.Status.RELEASED, Payment.Status.REFUNDED):
+        messages.info(request, 'This booking is already settled.')
         return redirect('booking_list')
-    if payment and payment.status == Payment.Status.AWAITING:
-        messages.info(request, 'Your payment is waiting for admin approval.')
+    if payment and payment.fully_paid:
+        messages.info(request, 'This booking is already paid in full. Servana is holding the money.')
         return redirect('booking_list')
-
-    if request.method == 'POST':
-        form = PaymentForm(request.POST)
-        if form.is_valid():
-            method = form.cleaned_data['method']
-            payment = payment or Payment(booking=booking)
-            payment.amount = booking.agreed_price
-            payment.method = method
-            if method == Payment.Method.CASH:
-                payment.status = Payment.Status.PENDING      # paid after the job
-                payment.paid_at = None
-                text = 'You chose to pay the provider after the job.'
-            else:
-                # demo only, no real card details. An admin must approve it before it counts as paid.
-                payment.status = Payment.Status.AWAITING
-                payment.paid_at = None
-                payment.reviewed_by = None
-                payment.reviewed_at = None
-                payment.admin_note = ''
-                payment.transaction_reference = 'DEMO-' + uuid.uuid4().hex[:10].upper()
-                text = 'Payment submitted. It is waiting for admin approval.'
-            payment.save()
-            if payment.status == Payment.Status.AWAITING:
-                notify_admins(Notification.NotificationType.PAYMENT, 'Payment to approve',
-                              f'{request.user.username} paid ${payment.amount} for booking #{booking.pk}.',
-                              '/bookings/payments/')
-            notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment update',
-                   f'{request.user.username} chose {payment.get_method_display()} for booking #{booking.pk} '
-                   f'({payment.get_status_display()}).', '/bookings/')
-            messages.success(request, text)
-            return redirect('booking_list')
-    else:
-        form = PaymentForm()
 
     total = booking.agreed_price
     subtotal = (total / Decimal('1.15')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    paying_balance = bool(payment and payment.money_held)          # the advance is already paid
     return render(request, 'bookings/payment.html', {
-        'booking': booking, 'form': form,
-        'total': total, 'subtotal': subtotal, 'gst': total - subtotal})
+        'booking': booking, 'payment': payment, 'paying_balance': paying_balance,
+        'total': total, 'subtotal': subtotal, 'gst': total - subtotal,
+        'advance': advance_amount(total), 'advance_rest': total - advance_amount(total),
+        'advance_percent': settings.ADVANCE_PERCENT,
+        'balance': payment.balance_due if paying_balance else None,
+        'stripe_ready': stripe_client.is_configured(),
+    })
+
+
+@role_required(*BUYER_ROLES)
+@require_POST
+def payment_create_order(request, pk):
+    """Step 1: start a Stripe Checkout. We decide the amount here, never the browser."""
+    booking = get_payable_booking(request, pk)
+    if booking.status == Booking.Status.CANCELLED:
+        return JsonResponse({'error': 'This booking was cancelled.'}, status=400)
+    if not stripe_client.is_configured():
+        return JsonResponse({'error': 'Payments are not set up yet (the Stripe test key is missing).'}, status=503)
+
+    try:
+        plan = json.loads(request.body or '{}').get('plan', 'FULL')
+    except ValueError:
+        plan = 'FULL'
+
+    with transaction.atomic():
+        payment, _ = Payment.objects.select_for_update().get_or_create(
+            booking=booking, defaults={'amount': booking.agreed_price})
+        if payment.status in (Payment.Status.RELEASED, Payment.Status.REFUNDED) or payment.fully_paid:
+            return JsonResponse({'error': 'This booking is already paid.'}, status=400)
+
+        if payment.money_held:                       # the advance is paid, now the balance
+            kind, amount = PaymentTransaction.Kind.BALANCE, payment.balance_due
+        elif plan == Payment.Plan.ADVANCE:
+            kind, amount = PaymentTransaction.Kind.ADVANCE, advance_amount(payment.amount)
+            payment.plan = Payment.Plan.ADVANCE
+        else:
+            kind, amount = PaymentTransaction.Kind.FULL, payment.amount
+            payment.plan = Payment.Plan.FULL
+        payment.save()
+
+        label = {'FULL': 'full payment', 'ADVANCE': 'advance', 'BALANCE': 'balance'}[kind]
+        return_url = request.build_absolute_uri(reverse('payment_return', args=[booking.pk]))
+        try:
+            session = stripe_client.create_checkout_session(
+                amount, f'{booking.service.name} ({label}) - Servana booking #{booking.pk}',
+                success_url=return_url + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=request.build_absolute_uri(reverse('booking_pay', args=[booking.pk])),
+                metadata={'booking': booking.pk, 'kind': kind},
+                customer_email=request.user.email)
+        except Exception:                           # network problem, wrong key, and so on
+            logger.exception('Stripe session failed')
+            return JsonResponse({'error': 'Could not start the payment. Please try again.'}, status=502)
+
+        PaymentTransaction.objects.create(
+            payment=payment, kind=kind, amount=amount, stripe_session_id=session['id'])
+
+    return JsonResponse({'url': session['url']})
+
+
+@role_required(*BUYER_ROLES)
+def payment_return(request, pk):
+    """Step 2: Stripe sends the customer back here. We ask Stripe directly if the payment really happened."""
+    booking = get_payable_booking(request, pk)
+    session_id = request.GET.get('session_id', '')
+
+    with transaction.atomic():
+        txn = (PaymentTransaction.objects.select_for_update()
+               .select_related('payment').filter(stripe_session_id=session_id, payment__booking=booking).first())
+        if txn is None:
+            messages.error(request, 'We could not find that payment.')
+            return redirect('booking_list')
+        if txn.status == PaymentTransaction.Status.PAID:          # already counted, do nothing
+            return redirect('booking_list')
+
+        try:
+            session = stripe_client.retrieve_session(session_id)
+        except Exception:
+            logger.exception('Stripe lookup failed')
+            messages.error(request, 'We could not confirm the payment with Stripe. If money was taken, contact us.')
+            return redirect('booking_list')
+
+        genuine = (session.get('payment_status') == 'paid'
+                   and session.get('amount_total') == stripe_client.to_cents(txn.amount)
+                   and session.get('currency') == 'nzd'
+                   and str(session.get('metadata', {}).get('booking')) == str(booking.pk))
+        if not genuine:
+            messages.error(request, 'The payment was not completed, so nothing was charged. You can try again.')
+            return redirect('booking_pay', pk=booking.pk)
+
+        now = timezone.now()
+        txn.status = PaymentTransaction.Status.PAID
+        txn.stripe_payment_id = str(session.get('payment_intent') or session_id)
+        txn.paid_at = now
+        txn.save()
+
+        payment = txn.payment
+        payment.amount_paid += txn.amount
+        payment.transaction_reference = txn.stripe_payment_id
+        payment.paid_at = now
+        payment.status = Payment.Status.HELD if payment.fully_paid else Payment.Status.PART_HELD
+        payment.save()
+
+    notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment received by Servana',
+           f'{request.user.username} paid ${txn.amount} for booking #{booking.pk} ({booking.service.name}). '
+           f'Servana holds it safely, so you can start the work.', '/bookings/')
+    notify_admins(Notification.NotificationType.PAYMENT, 'Payment held',
+                  f'${txn.amount} for booking #{booking.pk} is now held by Servana.', '/bookings/payments/')
+    messages.success(request, f'Payment of ${txn.amount} received. Servana is holding it safely until the work is done.')
+    return redirect('booking_list')
+
+
+@role_required(*BUYER_ROLES)
+@require_POST
+def payment_confirm_work(request, pk):
+    """The customer says the work is done and good. Now the admin can release the money."""
+    booking = get_payable_booking(request, pk)
+    payment = Payment.objects.filter(booking=booking).first()
+    if not (payment and payment.status == Payment.Status.HELD and booking.status == Booking.Status.COMPLETED):
+        messages.error(request, 'You can confirm once the job is completed and fully paid.')
+        return redirect('booking_list')
+    if not payment.customer_confirmed_at:
+        payment.customer_confirmed_at = timezone.now()
+        payment.save()
+        notify_admins(Notification.NotificationType.PAYMENT, 'Release payment',
+                      f'The customer confirmed booking #{booking.pk}. Please release ${payment.amount} to the provider.',
+                      '/bookings/payments/')
+        notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Work confirmed',
+               f'The customer confirmed booking #{booking.pk}. Servana will release your payment soon.', '/bookings/')
+    messages.success(request, 'Thank you! Servana will now release the payment to the provider.')
+    return redirect('booking_list')
 
 
 # ------------------------------------------------------------------ reviews
@@ -402,15 +529,17 @@ def quotation_decline(request, pk):
     return redirect('quotation_list')
 
 
-# ------------------------------------------------------------------ admin: payment approval
+# ------------------------------------------------------------------ admin: held payments
 @role_required(User.Role.ADMIN)
 def payment_approvals(request):
     payments = Payment.objects.select_related(
         'booking__service', 'booking__customer__user', 'booking__provider', 'reviewed_by')
+    held = payments.filter(status__in=[Payment.Status.HELD, Payment.Status.PART_HELD])
     return render(request, 'bookings/payment_approvals.html', {
-        'waiting': payments.filter(status=Payment.Status.AWAITING).order_by('created_at'),
-        'history': payments.exclude(status__in=[Payment.Status.AWAITING, Payment.Status.PENDING]
-                                    ).order_by('-reviewed_at', '-created_at')[:30],
+        'ready': held.filter(status=Payment.Status.HELD, customer_confirmed_at__isnull=False).order_by('customer_confirmed_at'),
+        'holding': held.exclude(status=Payment.Status.HELD, customer_confirmed_at__isnull=False).order_by('created_at'),
+        'history': payments.filter(status__in=[Payment.Status.RELEASED, Payment.Status.REFUNDED]
+                                   ).order_by('-reviewed_at')[:30],
     })
 
 
@@ -419,26 +548,29 @@ def payment_approvals(request):
 def payment_decide(request, pk):
     payment = get_object_or_404(Payment.objects.select_related(
         'booking__customer__user', 'booking__provider__user', 'booking__service'), pk=pk)
-    if payment.status != Payment.Status.AWAITING:
-        messages.info(request, 'That payment has already been decided.')
+    if not payment.money_held:
+        messages.info(request, 'That payment is not being held any more.')
         return redirect('payment_approvals')
 
     decision = request.POST.get('decision')
     note = request.POST.get('note', '').strip()[:255]
     booking = payment.booking
-    if decision == 'approve':
-        payment.status = Payment.Status.PAID
-        payment.paid_at = timezone.now()
-        text_customer = f'Your payment for booking #{booking.pk} was approved.'
-        text_provider = f'The payment for booking #{booking.pk} ({booking.service.name}) was approved.'
-    elif decision == 'reject':
-        payment.status = Payment.Status.REJECTED
-        payment.paid_at = None
-        text_customer = (f'Your payment for booking #{booking.pk} was rejected.'
-                         + (f' Reason: {note}' if note else ' Please try again.'))
-        text_provider = None
+    if decision == 'release':
+        # the money only goes to the provider after the customer confirmed the finished work
+        if payment.status != Payment.Status.HELD or not payment.customer_confirmed_at:
+            messages.error(request, 'The customer has not confirmed the work yet, so the money stays held.')
+            return redirect('payment_approvals')
+        payment.status = Payment.Status.RELEASED
+        text_customer = f'Servana released your payment for booking #{booking.pk} to the provider. Thank you!'
+        text_provider = (f'Your payment of ${payment.amount_paid} for booking #{booking.pk} '
+                         f'({booking.service.name}) has been released to you.')
+    elif decision == 'refund':
+        payment.status = Payment.Status.REFUNDED
+        text_customer = (f'Your payment for booking #{booking.pk} is being refunded.'
+                         + (f' Note: {note}' if note else ''))
+        text_provider = f'The payment for booking #{booking.pk} was refunded to the customer.'
     else:
-        messages.error(request, 'Please choose approve or reject.')
+        messages.error(request, 'Please choose release or refund.')
         return redirect('payment_approvals')
 
     payment.reviewed_by = request.user
@@ -447,11 +579,10 @@ def payment_decide(request, pk):
     payment.save()
 
     notify(booking.customer.user, Notification.NotificationType.PAYMENT,
-           'Payment ' + ('approved' if decision == 'approve' else 'rejected'), text_customer, '/bookings/')
-    if text_provider:
-        notify(booking.provider.user, Notification.NotificationType.PAYMENT,
-               'Payment approved', text_provider, '/bookings/')
-    messages.success(request, f'Payment #{payment.pk} {payment.get_status_display().lower()}.')
+           'Payment ' + ('released' if decision == 'release' else 'refunded'), text_customer, '/bookings/')
+    notify(booking.provider.user, Notification.NotificationType.PAYMENT,
+           'Payment ' + ('released' if decision == 'release' else 'refunded'), text_provider, '/bookings/')
+    messages.success(request, f'Payment #{payment.pk}: {payment.get_status_display().lower()}.')
     return redirect('payment_approvals')
 
 

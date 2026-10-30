@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Contact Us | Servana{% endblock %}
+{% block description %}Get in touch with the Servana team. Email, phone, address and social media.{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Contact us</h1>
+        <p>We are happy to help with bookings, payments and complaints.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width: 900px;">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 p-4">
+                    <h2 class="h4">Get in touch</h2>
+                    <p class="mb-2"><strong>Email:</strong> <a href="mailto:{{ SITE_CONTACT.email }}">{{ SITE_CONTACT.email }}</a></p>
+                    <p class="mb-2"><strong>Phone:</strong> {{ SITE_CONTACT.phone }}</p>
+                    <p class="mb-0"><strong>Address:</strong> {{ SITE_CONTACT.address }}</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 p-4">
+                    <h2 class="h4">Follow us</h2>
+                    <ul class="list-unstyled mb-0">
+                        {% for name, url in SOCIAL_LINKS %}
+                        <li class="mb-1"><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4 mb-0">
+            <strong>Problem with a booking or payment?</strong>
+            Log in and use the <em>Complaints</em> option on your dashboard so our admin team can review it.
+            Servana will never ask for your password or card details by email, phone or chat.
+        </div>
+    </div>
+</section>
+{% endblock %}

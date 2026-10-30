@@ -2,7 +2,8 @@ from django import forms
 from django.utils import timezone
 
 from services.models import ServiceRequest
-from .models import Complaint, Payment, Quotation, Review
+from accounts.security import clean_public_text
+from .models import Complaint, Quotation, Review
 
 
 class RequestForm(forms.ModelForm):
@@ -33,6 +34,9 @@ class RequestForm(forms.ModelForm):
                 'placeholder': 'e.g. 3 bedroom home, two bathrooms, pets at home'}),
         }
 
+    def clean_description(self):
+        return clean_public_text(self.cleaned_data['description'])
+
     def clean_preferred_date(self):
         date = self.cleaned_data['preferred_date']
         if date < timezone.localdate():
@@ -59,14 +63,8 @@ class QuotationForm(forms.ModelForm):
             raise forms.ValidationError('The price must be more than 0.')
         return amount
 
-
-class PaymentForm(forms.Form):
-    method = forms.ChoiceField(
-        choices=Payment.Method.choices,
-        initial=Payment.Method.CARD,                      # the card option starts ticked
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        error_messages={'required': 'Please choose a payment method.'},
-    )
+    def clean_message(self):
+        return clean_public_text(self.cleaned_data['message'])
 
 
 class ReviewForm(forms.ModelForm):
@@ -83,6 +81,10 @@ class ReviewForm(forms.ModelForm):
         widgets = {
             'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
+
+
+    def clean_comment(self):
+        return clean_public_text(self.cleaned_data['comment'])
 
 
 class ComplaintForm(forms.ModelForm):

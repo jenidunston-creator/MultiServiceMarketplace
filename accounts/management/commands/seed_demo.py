@@ -111,6 +111,8 @@ class Command(BaseCommand):
         # always reset the password, so the demo login works even if the user already existed
         user.set_password(DEMO_PASSWORD)
         user.is_active = True
+        # demo accounts count as fully verified, so the demo works straight away
+        user.email_verified = user.phone_verified = user.id_verified = True
         user.save()
         return user
 

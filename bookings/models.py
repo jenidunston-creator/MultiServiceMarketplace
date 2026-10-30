@@ -101,33 +101,41 @@ class Booking(models.Model):
 
 
 class Payment(models.Model):
+    """Money for one booking. Servana (the admin) holds it until the customer confirms the work,
+    then the admin releases it to the provider."""
 
     class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pending'
-        AWAITING = 'AWAITING', 'Awaiting admin approval'
-        PAID = 'PAID', 'Paid (approved)'
-        REJECTED = 'REJECTED', 'Rejected by admin'
-        FAILED = 'FAILED', 'Failed'
+        PENDING = 'PENDING', 'Not paid'
+        PART_HELD = 'PART_HELD', 'Advance paid (held by Servana)'
+        HELD = 'HELD', 'Paid (held by Servana)'
+        RELEASED = 'RELEASED', 'Released to provider'
         REFUNDED = 'REFUNDED', 'Refunded'
+        FAILED = 'FAILED', 'Failed'
+
+    class Plan(models.TextChoices):
+        FULL = 'FULL', 'Pay in full now'
+        ADVANCE = 'ADVANCE', 'Pay an advance now, the rest after the work'
 
     class Method(models.TextChoices):
-        CARD = 'CARD', 'Credit / debit card'
-        BANK = 'BANK', 'Bank transfer'
-        CASH = 'CASH', 'Pay the provider after the job'
+        STRIPE = 'STRIPE', 'Stripe (test mode)'
 
     booking = models.OneToOneField(
         Booking,
         on_delete=models.CASCADE,
         related_name='payment'
     )
+    # total price of the booking
     amount = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
+    plan = models.CharField(max_length=10, choices=Plan.choices, default=Plan.FULL)
+    # how much has been paid so far
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     method = models.CharField(
         max_length=10,
         choices=Method.choices,
-        default=Method.CARD
+        default=Method.STRIPE
     )
     status = models.CharField(
         max_length=20,
@@ -142,7 +150,9 @@ class Payment(models.Model):
         null=True,
         blank=True
     )
-    # set when an admin approves or rejects the payment
+    # the customer says the work is done and good
+    customer_confirmed_at = models.DateTimeField(null=True, blank=True)
+    # set when an admin releases the money to the provider (or refunds it)
     reviewed_by = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
@@ -156,6 +166,44 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment for Booking #{self.booking.id}"
+
+    @property
+    def balance_due(self):
+        return self.amount - self.amount_paid
+
+    @property
+    def fully_paid(self):
+        return self.amount_paid >= self.amount
+
+    @property
+    def money_held(self):
+        return self.status in (self.Status.PART_HELD, self.Status.HELD)
+
+
+class PaymentTransaction(models.Model):
+    """One Stripe payment (an advance, a balance or a full payment)."""
+
+    class Kind(models.TextChoices):
+        FULL = 'FULL', 'Full payment'
+        ADVANCE = 'ADVANCE', 'Advance'
+        BALANCE = 'BALANCE', 'Balance'
+
+    class Status(models.TextChoices):
+        CREATED = 'CREATED', 'Started'
+        PAID = 'PAID', 'Paid'
+        FAILED = 'FAILED', 'Failed'
+
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='transactions')
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)          # in NZD
+    stripe_session_id = models.CharField(max_length=120, unique=True)
+    stripe_payment_id = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATED)
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.get_kind_display()} for Booking #{self.payment.booking_id}"
 
 
 class Review(models.Model):

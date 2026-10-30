@@ -6,7 +6,7 @@
 <div class="page-banner">
     <div class="container">
         <h1>Payment</h1>
-        <p>Review your total and choose how to pay.</p>
+        <p>Your money is held safely by Servana until the work is done.</p>
     </div>
 </div>
 
@@ -15,28 +15,50 @@
         <div class="row g-4">
 
             <div class="col-lg-7">
-                <form class="card-box" method="post">
-                    {% csrf_token %}
-                    {% if form.errors %}<div class="alert alert-danger" role="alert">Please choose a payment method, then press Confirm payment.</div>{% endif %}
-                    <h2 class="h5 mb-3">Choose a payment method</h2>
-
-                    {% for radio in form.method %}
-                    <div class="form-check mb-2">
-                        {{ radio.tag }}
-                        <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                <div class="card-box" id="pay-box" data-order-url="{% url 'payment_create_order' booking.pk %}" >
+                    {% if not stripe_ready %}
+                    <div class="alert alert-warning" role="alert">
+                        Payments are not switched on yet. The site owner must add the Stripe <strong>test</strong> key.
                     </div>
-                    {% endfor %}
-                    {% for error in form.method.errors %}
-                        <div class="text-danger small mb-2">{{ error }}</div>
-                    {% endfor %}
+                    {% endif %}
 
-                    <div class="alert alert-warning small mt-4">
-                        This is a demo payment for the project. Do not enter real card numbers. Only the payment method and status are saved. Card and bank payments are checked and approved by an admin before they count as paid.
+                    <div id="pay-error" class="alert alert-danger d-none" role="alert"></div>
+
+                    {% if paying_balance %}
+                        <h2 class="h5 mb-3">Pay the balance</h2>
+                        <p>You already paid the advance. The balance of <strong>${{ balance }}</strong> is also held by Servana until you confirm the work is done.</p>
+                    {% else %}
+                        <h2 class="h5 mb-3">Choose how much to pay now</h2>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="plan" id="plan-full" value="FULL" checked>
+                            <label class="form-check-label" for="plan-full"><strong>Full payment</strong> now: ${{ total }}</label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="plan" id="plan-advance" value="ADVANCE">
+                            <label class="form-check-label" for="plan-advance"><strong>Advance payment</strong> ({{ advance_percent }}%) now: ${{ advance }}. The other ${{ advance_rest }} is paid after the work.</label>
+                        </div>
+                    {% endif %}
+
+                    <div class="alert alert-info small">
+                        <strong>How your money is protected</strong>
+                        <ol class="mb-0 ps-3">
+                            <li>You pay Servana, not the provider.</li>
+                            <li>The provider starts only after your payment is received.</li>
+                            <li>When the job is done, you confirm it.</li>
+                            <li>Then Servana releases the money to the provider.</li>
+                        </ol>
                     </div>
 
-                    <button class="btn btn-primary-custom" type="submit">Confirm payment</button>
+                    <div class="alert alert-warning small">
+                        <strong>Test mode.</strong> No real money is used. On the Stripe page use the test card
+                        <code>4242 4242 4242 4242</code>, any future expiry date, any CVC and any postcode. Prices are in NZD.
+                    </div>
+
+                    <button class="btn btn-primary-custom" id="pay-btn" type="button" {% if not stripe_ready %}disabled{% endif %}>
+                        {% if paying_balance %}Pay balance ${{ balance }}{% else %}Pay securely with Stripe{% endif %}
+                    </button>
                     <a class="btn btn-outline-custom" href="{% url 'booking_list' %}">Back</a>
-                </form>
+                </div>
             </div>
 
             <div class="col-lg-5">
@@ -49,10 +71,47 @@
                     <div class="d-flex justify-content-between"><span>GST (15%)</span><span>${{ gst }}</span></div>
                     <hr>
                     <div class="d-flex justify-content-between price"><span>Total (NZD)</span><span>${{ total }}</span></div>
+                    {% if payment and payment.amount_paid %}
+                    <div class="d-flex justify-content-between small mt-2"><span>Already paid</span><span>${{ payment.amount_paid }}</span></div>
+                    {% endif %}
                 </aside>
             </div>
 
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+{% if stripe_ready %}
+<script>
+(function () {
+    var box = document.getElementById('pay-box');
+    var btn = document.getElementById('pay-btn');
+    var errorBox = document.getElementById('pay-error');
+    var csrf = '{{ csrf_token }}';
+
+    function showError(text) {
+        errorBox.textContent = text;
+        errorBox.classList.remove('d-none');
+        btn.disabled = false;
+    }
+
+    btn.addEventListener('click', function () {
+        errorBox.classList.add('d-none');
+        btn.disabled = true;
+        var chosen = document.querySelector('input[name=plan]:checked');
+        fetch(box.dataset.orderUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({plan: chosen ? chosen.value : 'FULL'})
+        }).then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+          .then(function (res) {
+              if (!res.ok) { showError(res.body.error || 'Could not start the payment.'); return; }
+              window.location = res.body.url;          // go to Stripe's secure page
+          }).catch(function () { showError('Network problem. Please try again.'); });
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

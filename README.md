@@ -149,22 +149,28 @@ Main models and how they are related (all by foreign keys or one-to-one links):
 
 All models are registered in the Django admin.
 
-## 10. Security
+## 10. Security and anti-scam protection
 
 - Passwords are hashed by Django. CSRF protection is on for every form.
-- `login_required` and a `role_required` decorator protect every private page.
-- Admin-only pages return **403 Forbidden** to other roles.
-- Users can only see or change their own bookings, listings and chats.
-- Actions that change data (status, pay, delete, accept) accept **POST** only.
+- `login_required` and a `role_required` decorator protect every private page. Admin-only pages return **403 Forbidden** to other roles.
+- Users can only see or change their own bookings, listings and chats. Actions that change data accept **POST** only.
+- **Verified accounts only.** A new user must confirm their email, confirm their mobile number with a 6-digit code, and send passport (and NZ visa if not a NZ passport) details that an **admin approves**. Until then they cannot book, pay, chat or offer services, and their listings are hidden from customers.
+- Passport numbers are stored only as a one-way hash (one passport can be used on one account only). Passport and visa photos are stored in a private folder, never in public media, and only the owner and admins can open them. Expired passports and visas are rejected.
+- **Protected payments (escrow).** Customers pay Servana through Stripe Checkout (NZD, test mode only). The provider cannot start work until the payment is held. After the work is completed and the customer confirms it, the admin releases the money to the provider. The admin can refund a held payment.
+- Customers can choose to pay in full or pay a 30% advance and the balance later.
+- Payment amounts are decided by the server, never the browser. Every payment is confirmed by asking Stripe directly (status, NZD amount and booking), repeated confirmations are ignored, and live keys are refused.
+- Login attempts are limited (5 wrong tries locks a username for 15 minutes). Sign-ups are rate limited, email addresses must be unique, and a hidden field catches spam robots.
+- Messages, reviews, quotes and descriptions cannot contain links, emails, phone numbers or off-site payment talk (bank transfer, WhatsApp, crypto, gift cards).
+- Complaints go to the admin. Reviews can be hidden by the admin.
 
 ## 11. Notes and limitations
 
-- **Payments are a demo.** The site saves the payment method and status but never takes
-  real money and never stores card numbers. Card and bank payments are marked Paid only after an admin approves them. Paying the provider after the job (cash) does not need approval.
+- **Stripe runs in TEST mode.** No real money moves. Stripe supports New Zealand and NZD. Set `STRIPE_SECRET_KEY` (a test key starting `sk_test_`) as an environment variable. A real launch would use Stripe Connect to pay providers out.
+- **Email and SMS are not connected.** In demo mode the verification link and code are shown on the page (`DEMO_SHOW_CODES`). A real site would use an SMS service such as Twilio and a real email account.
+- **Passport and visa checks are done by a person (the admin).** There is no free official service that confirms a passport or visa online.
 - **Nova is a rule-based assistant** (keywords and database lookups). It does not use an outside AI service.
-- A provider is one account, even when it is a company with employees. Employees do not have their own accounts.
+- A provider is one account, even when it is a company with employees.
 - The project uses the default SQLite database, which is fine for a course project.
-  A busy real website would use PostgreSQL or MySQL instead.
 
 ## 12. Deployment
 

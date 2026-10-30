@@ -3,12 +3,21 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.text import slugify
 
 from accounts.decorators import role_required
 from accounts.models import User
 from .forms import ServiceListingForm
 from .models import ServiceCategory, ServiceProviderService
 from bookings.models import Review
+
+
+# Only providers who are fully verified (email, mobile, passport and visa) are shown to customers.
+VERIFIED_PROVIDER = (
+    Q(provider__user__is_superuser=True) | Q(provider__user__role=User.Role.ADMIN)
+    | Q(provider__user__email_verified=True, provider__user__phone_verified=True,
+        provider__user__id_verified=True)
+)
 
 
 def with_ratings(queryset):
@@ -38,7 +47,7 @@ def home(request):
 
 # ---------- READ (list + search + filter) ----------
 def service_list(request):
-    listings = ServiceProviderService.objects.filter(is_active=True).select_related(
+    listings = ServiceProviderService.objects.filter(is_active=True).filter(VERIFIED_PROVIDER).select_related(
         'provider', 'service', 'service__category'
     )
 
@@ -52,6 +61,15 @@ def service_list(request):
             | Q(description__icontains=q)
             | Q(provider__provider_name__icontains=q)
         )
+    if category and not category.isdigit():
+        # the home page cards use words such as "home-maintenance" or "delivery"
+        wanted = slugify(category)
+        for c in ServiceCategory.objects.filter(is_active=True):
+            if wanted in slugify(c.name):
+                category = str(c.id)
+                break
+        else:
+            category = ''
     if category:
         listings = listings.filter(service__category_id=category)
     if city:
@@ -84,8 +102,10 @@ def service_detail(request, pk):
             'provider', 'service', 'service__category')),
         pk=pk,
     )
-    # hidden listings can only be seen by the owner or an admin
-    if not listing.is_active:
+    # hidden listings, and listings of unverified providers, can only be seen by the owner or an admin
+    owner = listing.provider.user
+    provider_verified = owner.is_verified
+    if not listing.is_active or not provider_verified:
         if not request.user.is_authenticated or not can_manage(request.user, listing):
             raise PermissionDenied
 
@@ -113,7 +133,7 @@ def service_compare(request):
     listings = []
     if ids:
         listings = with_ratings(
-            ServiceProviderService.objects.filter(pk__in=ids, is_active=True)
+            ServiceProviderService.objects.filter(pk__in=ids, is_active=True).filter(VERIFIED_PROVIDER)
             .select_related('provider', 'service')
         )
     return render(request, 'services/compare.html', {'listings': listings})

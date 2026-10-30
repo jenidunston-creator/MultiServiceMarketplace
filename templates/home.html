@@ -509,6 +509,8 @@
                     <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
                     <li class="nav-item"><a class="nav-link" href="#ai-assistant">AI Assistant</a></li>
                     <li class="nav-item"><a class="nav-link" href="#providers">For Providers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about/">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/contact/">Contact</a></li>
                 </ul>
 
                 <div class="nav-actions d-flex flex-wrap gap-2">
@@ -551,8 +553,8 @@
                     </p>
 
                     <div class="hero-actions">
-                        <a href="#service-search" class="btn btn-accent">Find a Service <span aria-hidden="true">→</span></a>
-                        <a href="#providers" class="btn btn-outline-custom">Become a Provider</a>
+                        <a href="/services/" class="btn btn-accent">Find a Service <span aria-hidden="true">→</span></a>
+                        <a href="/accounts/signup/?role=provider" class="btn btn-outline-custom">Become a Provider</a>
                     </div>
 
                     <div class="trust-points">
@@ -914,7 +916,7 @@
                         <div class="service-icon" aria-hidden="true">🛡️</div>
                         <h3>Administrators</h3>
                         <p>Manage users, categories, platform records and operational reporting.</p>
-                        <a class="card-link" href="/admin/" rel="nofollow">Admin portal <span aria-hidden="true">→</span></a>
+                        <a class="card-link" href="/accounts/login/?next=/dashboard/admin-panel/" rel="nofollow">Admin portal <span aria-hidden="true">→</span></a>
                     </article>
                 </div>
             </div>
@@ -981,7 +983,7 @@
                             <div><strong>For admins</strong></div>
                         </div>
                         <ul class="ps-3 mb-0">
-                            <li>Approve card and bank payments</li>
+                            <li>Hold payments safely and release them to providers after the work</li>
                             <li>Answer and resolve complaints</li>
                             <li>Verify providers and moderate reviews</li>
                             <li>Manage users and view booking reports</li>
@@ -1136,6 +1138,9 @@
                 </a>
                 <p class="footer-description">An AI-powered multi-service marketplace designed to simplify service discovery, provider matching, quotes and booking across New Zealand.</p>
                 <p class="small">Proudly built for New Zealand. 🇳🇿</p>
+                <p class="small mb-0">Follow us:
+                    {% for name, url in SOCIAL_LINKS %}<a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}
+                </p>
             </div>
 
             <div class="col-6 col-lg-2 col-md-6">
@@ -1164,6 +1169,8 @@
                     <li><a href="/communication/">Support &amp; Communication</a></li>
                     <li><a href="#ai-assistant">AI Assistant</a></li>
                     <li><a href="#providers">Become a Provider</a></li>
+                    <li><a href="/about/">About Us</a></li>
+                    <li><a href="/contact/">Contact Us</a></li>
                     <li><a href="#home">Back to Top</a></li>
                 </ul>
             </div>

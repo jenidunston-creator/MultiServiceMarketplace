@@ -1,5 +1,6 @@
 from django import forms
 
+from accounts.security import clean_public_text
 from .models import Service, ServiceProviderService
 
 
@@ -34,6 +35,9 @@ class ServiceListingForm(forms.ModelForm):
         self.provider = provider
         # only show services that are switched on
         self.fields['service'].queryset = Service.objects.filter(is_active=True).order_by('name')
+
+    def clean_description(self):
+        return clean_public_text(self.cleaned_data['description'])
 
     def clean_price(self):
         price = self.cleaned_data['price']

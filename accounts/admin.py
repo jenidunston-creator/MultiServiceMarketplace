@@ -5,6 +5,8 @@ from .models import (
     CustomerProfile,
     ProviderProfile,
     Business,
+    SiteFeedback,
+    IdentityVerification,
 )
 
 
@@ -41,3 +43,18 @@ class BusinessAdmin(admin.ModelAdmin):
     list_display = ('business_name', 'owner', 'city', 'verification_status')
     list_filter = ('verification_status', 'city')
     search_fields = ('business_name', 'owner__username')
+
+
+@admin.register(SiteFeedback)
+class SiteFeedbackAdmin(admin.ModelAdmin):
+    """Tick 'is approved' to show a comment on the About page."""
+    list_display = ('user', 'role', 'rating', 'comment', 'is_approved', 'created_at')
+    list_filter = ('is_approved', 'role')
+    list_editable = ('is_approved',)
+
+
+@admin.register(IdentityVerification)
+class IdentityVerificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'full_name', 'status', 'passport_expiry', 'visa_expiry', 'submitted_at')
+    list_filter = ('status',)
+    exclude = ('passport_image', 'visa_image')

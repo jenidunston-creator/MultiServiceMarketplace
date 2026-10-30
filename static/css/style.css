@@ -95,7 +95,7 @@ select:focus-visible, textarea:focus-visible {
 /* Dashboard */
 .dash-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; padding: 36px 0 60px; }
 .dash-layout > * { min-width: 0; }
-.dash-sidebar { background: var(--primary-deep); color: #cfe6dc; border-radius: var(--radius); padding: 22px 16px; align-self: start; position: sticky; top: 90px; }
+.dash-sidebar { background: var(--primary-deep); color: #cfe6dc; border-radius: var(--radius); padding: 22px 16px; align-self: start; position: sticky; top: 90px; height: calc(100vh - 110px); min-height: 360px; overflow-y: auto; box-sizing: border-box; }
 .dash-sidebar h2 { font-family: "Inter", sans-serif; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0 10px 12px; }
 .dash-sidebar a { display: block; padding: 10px 12px; border-radius: 10px; color: #cfe6dc; font-weight: 600; font-size: .95rem; }
 .dash-sidebar a:hover, .dash-sidebar a.active { background: rgba(255,255,255,.1); color: #fff; }
@@ -126,7 +126,7 @@ select:focus-visible, textarea:focus-visible {
 
 @media (max-width: 991.98px) {
     .dash-layout { grid-template-columns: minmax(0, 1fr); }
-    .dash-sidebar { position: static; display: flex; flex-wrap: wrap; gap: 4px; }
+    .dash-sidebar { position: static; height: auto; min-height: 0; overflow: visible; display: flex; flex-wrap: wrap; gap: 4px; }
     .dash-sidebar h2 { width: 100%; }
 }
 

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Verify your account | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Verify your account</h1>
+        <p>Everyone on Servana is checked, so customers and providers can trust each other.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width: 820px;">
+
+        {% if user.is_verified %}
+        <div class="alert alert-success"><strong>You are fully verified.</strong> You can book, pay and use every part of Servana.
+            <a class="alert-link" href="{% url 'dashboard' %}">Go to my dashboard</a></div>
+        {% else %}
+        <div class="alert alert-warning">Finish all three steps. Until then you can look around, but you cannot book, pay or offer services.</div>
+        {% endif %}
+
+        <!-- Step 1 -->
+        <div class="card-box mb-3">
+            <h2 class="h5">1. Email {% if user.email_verified %}<span class="badge-soft badge-confirmed">Done</span>{% else %}<span class="badge-soft badge-pending">To do</span>{% endif %}</h2>
+            <p class="mb-2 small text-muted">{{ user.email|default:"No email on this account" }}</p>
+            {% if not user.email_verified %}
+            <form method="post" action="{% url 'verify_email_send' %}">{% csrf_token %}
+                <button class="btn btn-primary-custom btn-sm" type="submit">Send me a confirmation link</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card-box mb-3">
+            <h2 class="h5">2. Mobile number {% if user.phone_verified %}<span class="badge-soft badge-confirmed">Done</span>{% else %}<span class="badge-soft badge-pending">To do</span>{% endif %}</h2>
+            {% if user.phone_verified %}
+                <p class="mb-0 small text-muted">{{ user.phone_number }}</p>
+            {% else %}
+            <form method="post" action="{% url 'verify_phone_send' %}" class="row g-2 mb-3">{% csrf_token %}
+                <div class="col-sm-8">
+                    <label class="visually-hidden" for="phone">Mobile number</label>
+                    <input class="form-control" id="phone" name="phone" value="{{ user.phone_number }}" placeholder="+64 21 123 4567" required>
+                </div>
+                <div class="col-sm-4"><button class="btn btn-primary-custom w-100" type="submit">Send code</button></div>
+            </form>
+            <form method="post" action="{% url 'verify_phone_confirm' %}" class="row g-2">{% csrf_token %}
+                <div class="col-sm-8">
+                    <label class="visually-hidden" for="code">6-digit code</label>
+                    <input class="form-control" id="code" name="code" inputmode="numeric" maxlength="6" placeholder="6-digit code" required>
+                </div>
+                <div class="col-sm-4"><button class="btn btn-outline-custom w-100" type="submit">Confirm code</button></div>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Step 3 -->
+        <div class="card-box mb-3">
+            <h2 class="h5">3. Passport and NZ visa
+                {% if user.id_verified %}<span class="badge-soft badge-confirmed">Approved</span>
+                {% elif identity and identity.status == 'PENDING' %}<span class="badge-soft badge-progress">Waiting for admin</span>
+                {% elif identity and identity.status == 'REJECTED' %}<span class="badge-soft badge-cancelled">Rejected</span>
+                {% else %}<span class="badge-soft badge-pending">To do</span>{% endif %}</h2>
+            {% if identity and identity.status == 'REJECTED' %}
+                <p class="small text-danger">{{ identity.admin_note|default:"Please send your documents again." }}</p>
+            {% endif %}
+            {% if user.id_verified %}
+                <p class="mb-0 small text-muted">An admin approved your documents.</p>
+            {% elif identity and identity.status == 'PENDING' %}
+                <p class="mb-0 small text-muted">An admin is checking your documents. You will get a notification.</p>
+            {% else %}
+                <p class="small text-muted">Send your passport (and your NZ visa if you do not have a NZ passport). Only admins can see them.</p>
+                <a class="btn btn-primary-custom btn-sm" href="{% url 'verify_identity' %}">Send my documents</a>
+            {% endif %}
+        </div>
+
+        {% if demo %}
+        <p class="small text-muted">Demo mode: SMS and email are not connected, so codes and links are shown on the page.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

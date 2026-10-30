@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
+from accounts import pages, verification
 from accounts import views as account_views
 from communication import views as communication_views
 from services import views as services_views
@@ -13,6 +14,11 @@ urlpatterns = [
 
     # home page
     path('', services_views.home, name='home'),
+
+    # static pages
+    path('about/', pages.about, name='about'),
+    path('about/feedback/', pages.about_feedback, name='about_feedback'),
+    path('contact/', TemplateView.as_view(template_name='pages/contact.html'), name='contact'),
 
     # apps
     path('accounts/', include('accounts.urls')),
@@ -35,6 +41,8 @@ urlpatterns = [
     path('dashboard/admin-panel/users/<int:pk>/toggle/', account_views.admin_user_toggle, name='admin_user_toggle'),
     path('dashboard/admin-panel/providers/<int:pk>/verify/', account_views.admin_provider_verify, name='admin_provider_verify'),
     path('dashboard/admin-panel/reviews/<int:pk>/toggle/', account_views.admin_review_toggle, name='admin_review_toggle'),
+    path('dashboard/admin-panel/verifications/', verification.admin_verifications, name='admin_verifications'),
+    path('dashboard/admin-panel/verifications/<int:pk>/decide/', verification.admin_verification_decide, name='admin_verification_decide'),
     path('dashboard/admin-panel/bookings.csv', account_views.admin_bookings_csv, name='admin_bookings_csv'),
 
 ]

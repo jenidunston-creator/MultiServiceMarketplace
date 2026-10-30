@@ -60,6 +60,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'accounts.middleware.VerificationRequiredMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -75,6 +76,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.site_details',
             ],
         },
     },
@@ -145,3 +147,48 @@ LOGOUT_REDIRECT_URL = '/'
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_HSTS_SECONDS = 86400
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+
+
+# ---------- Site details shown on the About / Contact pages and in the footer ----------
+# Replace these with your own real details.
+SITE_CONTACT = {
+    'email': 'support@servana.example',
+    'phone': '022 591 3229',
+    'address': '1/48 View Road, Henderson, Auckland 0612',
+}
+SOCIAL_LINKS = [
+    ('Facebook', 'https://www.facebook.com/'),
+    ('Instagram', 'https://www.instagram.com/'),
+    ('LinkedIn', 'https://www.linkedin.com/'),
+    ('X', 'https://x.com/'),
+    ('YouTube', 'https://www.youtube.com/'),
+]
+
+
+# ---------- Stripe (TEST MODE ONLY) ----------
+# Stripe works in New Zealand and takes NZD. Get a free TEST key at https://dashboard.stripe.com
+# (keep "Test mode" switched on, then open Developers > API keys > Secret key, it starts with sk_test_).
+# Set it as an environment variable. Never type the secret into a file that goes to GitHub.
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+STRIPE_API_URL = os.environ.get('STRIPE_API_URL', 'https://api.stripe.com/v1')
+# share of the price paid up front when the customer picks "advance payment"
+ADVANCE_PERCENT = 30
+
+
+# ---------- Identity checks (email, mobile, passport and visa) ----------
+PRIVATE_MEDIA_ROOT = BASE_DIR / 'private_media'          # passport and visa photos (never public)
+# Email. Without a real mail account the link is printed in the server window (console backend).
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Servana <noreply@servana.example>')
+# Demo mode: SMS and email are not connected, so the code / link is also shown on the page.
+# Turn this OFF (DEMO_SHOW_CODES=False) once a real SMS and email service is connected.
+DEMO_SHOW_CODES = os.environ.get('DEMO_SHOW_CODES', 'True') == 'True'

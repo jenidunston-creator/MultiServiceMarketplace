@@ -1,44 +1,76 @@
 {% extends "base.html" %}
-{% block title %}Payment approvals | Servana{% endblock %}
+{% block title %}Held payments | Servana{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <div class="page-banner">
     <div class="container">
-        <h1>Payment approvals</h1>
-        <p>Check each payment, then approve or reject it. The customer and provider are told straight away.</p>
+        <h1>Held payments</h1>
+        <p>Customers pay Servana first. Release the money to the provider only after the customer confirms the work.</p>
     </div>
 </div>
 
 <section class="section">
     <div class="container">
-        <h2 class="h5">Waiting for approval ({{ waiting|length }})</h2>
+        <h2 class="h5">Ready to release ({{ ready|length }})</h2>
+        <p class="text-muted small">The work is completed, fully paid and confirmed by the customer.</p>
         <div class="table-wrap table-responsive mb-5">
             <table class="table mb-0 align-middle">
                 <thead>
-                    <tr><th>Booking</th><th>Customer</th><th>Provider</th><th>Amount</th><th>Method</th><th>Reference</th><th>Decision</th></tr>
+                    <tr><th>Booking</th><th>Customer</th><th>Provider</th><th>Amount</th><th>Confirmed</th><th>Decision</th></tr>
                 </thead>
                 <tbody>
-                    {% for p in waiting %}
+                    {% for p in ready %}
                     <tr>
                         <td>#{{ p.booking.pk }} {{ p.booking.service.name }}</td>
                         <td>{{ p.booking.customer.user.username }}</td>
                         <td>{{ p.booking.provider.provider_name }}</td>
-                        <td>${{ p.amount|floatformat:"-2" }}</td>
-                        <td>{{ p.get_method_display }}</td>
-                        <td><small>{{ p.transaction_reference }}</small></td>
+                        <td>${{ p.amount_paid|floatformat:"-2" }}</td>
+                        <td>{{ p.customer_confirmed_at|date:"d M Y H:i" }}</td>
                         <td>
                             <form method="post" action="{% url 'payment_decide' p.pk %}" class="d-flex flex-wrap gap-2">
                                 {% csrf_token %}
                                 <label class="visually-hidden" for="note{{ p.pk }}">Note (optional)</label>
                                 <input class="form-control form-control-sm" style="min-width:140px;" id="note{{ p.pk }}" name="note" maxlength="255" placeholder="Note (optional)">
-                                <button class="btn btn-primary-custom btn-sm" name="decision" value="approve" type="submit">Approve</button>
-                                <button class="btn btn-danger-soft btn-sm" name="decision" value="reject" type="submit">Reject</button>
+                                <button class="btn btn-primary-custom btn-sm" name="decision" value="release" type="submit">Release to provider</button>
+                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment to the customer?');">Refund</button>
                             </form>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted py-4">No payments are waiting.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nothing is ready to release.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="h5">Held by Servana, waiting for the work ({{ holding|length }})</h2>
+        <div class="table-wrap table-responsive mb-5">
+            <table class="table mb-0 align-middle">
+                <thead>
+                    <tr><th>Booking</th><th>Customer</th><th>Provider</th><th>Paid</th><th>Total</th><th>Job</th><th>Status</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for p in holding %}
+                    <tr>
+                        <td>#{{ p.booking.pk }} {{ p.booking.service.name }}</td>
+                        <td>{{ p.booking.customer.user.username }}</td>
+                        <td>{{ p.booking.provider.provider_name }}</td>
+                        <td>${{ p.amount_paid|floatformat:"-2" }}</td>
+                        <td>${{ p.amount|floatformat:"-2" }}</td>
+                        <td>{{ p.booking.get_status_display }}</td>
+                        <td><span class="badge-soft badge-progress">{{ p.get_status_display }}</span></td>
+                        <td>
+                            {% if p.booking.status == 'CANCELLED' %}
+                            <form method="post" action="{% url 'payment_decide' p.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment to the customer?');">Refund</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">No money is being held.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -55,8 +87,8 @@
                     <tr>
                         <td>#{{ p.booking.pk }} {{ p.booking.service.name }}</td>
                         <td>{{ p.booking.customer.user.username }}</td>
-                        <td>${{ p.amount|floatformat:"-2" }}</td>
-                        <td><span class="badge-soft {% if p.status == 'PAID' %}badge-confirmed{% else %}badge-cancelled{% endif %}">{{ p.get_status_display }}</span></td>
+                        <td>${{ p.amount_paid|floatformat:"-2" }}</td>
+                        <td><span class="badge-soft {% if p.status == 'RELEASED' %}badge-confirmed{% else %}badge-cancelled{% endif %}">{{ p.get_status_display }}</span></td>
                         <td>{{ p.reviewed_by.username|default:"-" }}</td>
                         <td>{{ p.reviewed_at|date:"d M Y H:i"|default:"-" }}</td>
                         <td>{{ p.admin_note|default:"-" }}</td>

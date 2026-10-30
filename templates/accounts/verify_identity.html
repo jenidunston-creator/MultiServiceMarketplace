@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Passport and visa | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>Passport and NZ visa</h1>
+        <p>An admin checks your documents. They are stored privately.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width: 720px;">
+        <form method="post" enctype="multipart/form-data" class="card-box">
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+            <div class="mb-3">
+                {% if field.name == 'agree' %}
+                    <div class="form-check">{{ field }} <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+                {% else %}
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                {% endif %}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+            <p class="small text-muted">JPG, PNG or PDF, up to 5 MB each. A New Zealand passport needs no visa. Any other passport needs a valid NZ visa.</p>
+            <button class="btn btn-primary-custom" type="submit">Send for checking</button>
+            <a class="btn btn-outline-custom" href="{% url 'verify_center' %}">Back</a>
+        </form>
+    </div>
+</section>
+{% endblock %}

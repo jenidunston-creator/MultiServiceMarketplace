@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}ID checks | Servana{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>ID checks</h1>
+        <p>Check each passport and visa. Approve only when the name, photo and dates are correct and the visa is valid in New Zealand.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container">
+        <h2 class="h5">Waiting ({{ waiting|length }})</h2>
+        <div class="table-wrap table-responsive mb-5">
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>User</th><th>Name on passport</th><th>Document</th><th>Passport expires</th><th>Visa</th><th>Email</th><th>Mobile</th><th>Files</th><th>Decision</th></tr></thead>
+                <tbody>
+                    {% for r in waiting %}
+                    <tr>
+                        <td>{{ r.user.username }}<br><small class="text-muted">{{ r.user.get_role_display }}</small></td>
+                        <td>{{ r.full_name }}<br><small class="text-muted">{{ r.nationality }}</small></td>
+                        <td>{{ r.get_document_type_display }}</td>
+                        <td>{{ r.passport_expiry|date:"d M Y" }}</td>
+                        <td>{% if r.visa_type %}{{ r.visa_type }}<br><small class="text-muted">to {{ r.visa_expiry|date:"d M Y" }}</small>{% else %}-{% endif %}</td>
+                        <td>{% if r.user.email_verified %}Yes{% else %}<span class="text-danger">No</span>{% endif %}</td>
+                        <td>{% if r.user.phone_verified %}Yes{% else %}<span class="text-danger">No</span>{% endif %}</td>
+                        <td class="text-nowrap">
+                            <a href="{% url 'identity_document' r.pk 'passport' %}" target="_blank" rel="noopener">Passport</a>
+                            {% if r.visa_image %}<br><a href="{% url 'identity_document' r.pk 'visa' %}" target="_blank" rel="noopener">Visa</a>{% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'admin_verification_decide' r.pk %}" class="d-flex flex-wrap gap-2">
+                                {% csrf_token %}
+                                <label class="visually-hidden" for="note{{ r.pk }}">Note</label>
+                                <input class="form-control form-control-sm" style="min-width:130px;" id="note{{ r.pk }}" name="note" maxlength="255" placeholder="Note (optional)">
+                                <button class="btn btn-primary-custom btn-sm" name="decision" value="approve" type="submit">Approve</button>
+                                <button class="btn btn-danger-soft btn-sm" name="decision" value="reject" type="submit">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No ID checks are waiting.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2 class="h5">Recent decisions</h2>
+        <div class="table-wrap table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>User</th><th>Name</th><th>Result</th><th>By</th><th>When</th><th>Note</th></tr></thead>
+                <tbody>
+                    {% for r in history %}
+                    <tr>
+                        <td>{{ r.user.username }}</td><td>{{ r.full_name }}</td>
+                        <td><span class="badge-soft {% if r.status == 'APPROVED' %}badge-confirmed{% else %}badge-cancelled{% endif %}">{{ r.get_status_display }}</span></td>
+                        <td>{{ r.reviewed_by.username|default:"-" }}</td>
+                        <td>{{ r.reviewed_at|date:"d M Y H:i"|default:"-" }}</td>
+                        <td>{{ r.admin_note|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nothing decided yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a class="btn btn-outline-custom mt-4" href="{% url 'admin_dashboard' %}">Back to the admin dashboard</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}About Us | Servana{% endblock %}
+{% block description %}Servana is a New Zealand marketplace that connects customers and businesses with verified local service providers, with protected payments.{% endblock %}
+
+{% block content %}
+<div class="page-banner">
+    <div class="container">
+        <h1>About Servana</h1>
+        <p>Trusted local services, made easy across New Zealand.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="container" style="max-width: 1000px;">
+
+        <h2 class="h3">Who we are</h2>
+        <p>Servana is a New Zealand service marketplace. We bring customers, businesses and local service providers together in one place, so finding, comparing, booking and paying for a job is simple and safe. Whether you need a cleaner in Auckland, a plumber in Wellington, a tutor in Dunedin or a photographer in Queenstown, Servana helps you find someone you can trust.</p>
+
+        <h2 class="h3 mt-5">Our mission</h2>
+        <p>To make everyday services easier to find and safer to buy across New Zealand, and to give local providers a fair way to reach new customers. We believe nobody should have to chase quotes, worry about scams or pay someone they cannot trust.</p>
+
+        <div class="row row-cols-2 row-cols-md-5 g-3 text-center my-4">
+            <div class="col"><div class="stat-card"><div class="num">{{ stats.providers }}</div><div class="lbl">Verified providers</div></div></div>
+            <div class="col"><div class="stat-card"><div class="num">{{ stats.services }}</div><div class="lbl">Services</div></div></div>
+            <div class="col"><div class="stat-card"><div class="num">{{ stats.categories }}</div><div class="lbl">Categories</div></div></div>
+            <div class="col"><div class="stat-card"><div class="num">{{ stats.cities }}</div><div class="lbl">NZ cities</div></div></div>
+            <div class="col"><div class="stat-card"><div class="num">{{ stats.bookings }}</div><div class="lbl">Bookings made</div></div></div>
+        </div>
+
+        <h2 class="h3 mt-5">What you can find</h2>
+        <p>Our categories cover home maintenance, cleaning, vehicle services, moving and delivery, technical help, building and construction, outdoor and rural work, pets, education, health and wellbeing, family and care, events and creative work, business and finance, energy and healthy homes, and personal services.</p>
+
+        <h2 class="h3 mt-5">How it works</h2>
+        <div class="row row-cols-1 row-cols-md-4 g-3">
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">1. Join and verify</h3><p class="small mb-0">Sign up, then confirm your email, mobile number and passport/visa. An admin checks your documents.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">2. Find and compare</h3><p class="small mb-0">Search by service and city, compare prices and ratings, or ask for a quote.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">3. Book and pay safely</h3><p class="small mb-0">Pay in full or an advance. Servana holds the money, not the provider.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">4. Confirm and review</h3><p class="small mb-0">When the work is done you confirm it, we release the payment, and you can leave a review.</p></div></div>
+        </div>
+
+        <h2 class="h3 mt-5">Who Servana is for</h2>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            <div class="col"><div class="card h-100 p-3"><h3 class="h5">Customers</h3><p class="mb-0 small">Individuals who need a job done. Compare providers, book online, pay securely and review the work.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h5">Service providers</h3><p class="mb-0 small">People and companies that offer services. Get found by local customers, receive requests and quotes in one dashboard and build a reputation with reviews.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h5">Businesses</h3><p class="mb-0 small">Companies that need services. Request work, track bookings and monthly spending, and keep a clear record of every job.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h5">Admins</h3><p class="mb-0 small">The Servana team. We verify people, hold and release payments, answer complaints and keep the marketplace fair.</p></div></div>
+        </div>
+
+        <h2 class="h3 mt-5">How Servana keeps you safe</h2>
+        <ul>
+            <li><strong>Verified people only.</strong> Every account confirms its email, mobile number and passport/visa, and an admin approves the documents. Each passport can be used on one account only.</li>
+            <li><strong>Protected payments.</strong> You pay Servana first. The provider starts after your payment is received, and is paid only after you confirm the work is done.</li>
+            <li><strong>No off-site deals.</strong> Links, emails, phone numbers and requests to pay outside Servana are blocked in messages, quotes, reviews and descriptions.</li>
+            <li><strong>Fair reviews.</strong> Only customers with a completed booking can review a provider, and the admin can hide unfair reviews.</li>
+            <li><strong>Complaints handled.</strong> Our admin team reviews every complaint and can refund a payment.</li>
+            <li><strong>Private documents.</strong> Passport and visa photos are stored privately and only you and the admin can open them.</li>
+        </ul>
+
+        <h2 class="h3 mt-5">Our values</h2>
+        <div class="row row-cols-1 row-cols-md-4 g-3">
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">Trust</h3><p class="small mb-0">Everyone is checked before they can trade.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">Fairness</h3><p class="small mb-0">Clear prices in NZD including GST, and honest reviews.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">Local</h3><p class="small mb-0">Built for New Zealand towns and cities.</p></div></div>
+            <div class="col"><div class="card h-100 p-3"><h3 class="h6">Simple</h3><p class="small mb-0">Find, book, pay and review in one place.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<section class="section section-soft" id="reviews">
+    <div class="container" style="max-width: 1100px;">
+        <div class="section-heading">
+            <span class="eyebrow">Testimonials</span>
+            <h2>What people say about Servana</h2>
+            {% if average %}<p><span class="rating">★ {{ average }}</span> average from customers, businesses and service providers</p>
+            {% else %}<p>Comments from customers, businesses and service providers.</p>{% endif %}
+        </div>
+
+        {% if all_reviews %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for r in all_reviews %}
+            <div class="col">
+                <article class="testimonial-card h-100">
+                    <p class="mb-2 rating" aria-label="{{ r.rating }} out of 5">{% for i in "12345" %}{% if forloop.counter <= r.rating %}★{% else %}☆{% endif %}{% endfor %}</p>
+                    <blockquote class="mb-3">&ldquo;{{ r.text }}&rdquo;</blockquote>
+                    <div>
+                        <strong class="d-block">{{ r.name }}</strong>
+                        <span class="badge-soft badge-confirmed">{{ r.role }}</span>
+                        <span class="small text-muted d-block mt-1">{{ r.note }}</span>
+                    </div>
+                </article>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center text-muted">No comments yet. Be the first to share your experience below.</p>
+        {% endif %}
+
+        {% if top_providers %}
+        <h3 class="h5 mt-5">Top-rated providers</h3>
+        <div class="row row-cols-1 row-cols-md-3 g-3">
+            {% for p in top_providers %}
+            <div class="col"><div class="card h-100 p-3">
+                <strong>{{ p.provider_name }}</strong>
+                <span class="text-muted small">{{ p.city }}</span>
+                <span class="rating">★ {{ p.avg|floatformat:1 }}</span> <span class="small text-muted">({{ p.n }} review{{ p.n|pluralize }})</span>
+            </div></div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card-box mt-5" style="max-width: 640px;">
+            <h3 class="h5">Share your experience with Servana</h3>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'about_feedback' %}">
+                {% csrf_token %}
+                <div class="mb-2">
+                    <label class="form-label" for="fb-rating">Your rating</label>
+                    <select class="form-select" id="fb-rating" name="rating">
+                        <option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Okay</option>
+                        <option value="2">2 - Poor</option><option value="1">1 - Terrible</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="fb-comment">Your comment (10 to 400 characters)</label>
+                    <textarea class="form-control" id="fb-comment" name="comment" rows="3" maxlength="400" required></textarea>
+                </div>
+                <button class="btn btn-primary-custom" type="submit">Send</button>
+                <p class="small text-muted mt-2 mb-0">An admin approves comments before they appear. Please do not include links or contact details.</p>
+            </form>
+            {% else %}
+            <p class="mb-0">Please <a href="{% url 'login' %}">log in</a> to leave a comment.</p>
+            {% endif %}
+        </div>
+
+        <p class="mt-5 mb-0"><a class="btn btn-primary-custom" href="/services/">Explore services</a>
+        <a class="btn btn-outline-custom ms-2" href="/contact/">Contact us</a></p>
+    </div>
+</section>
+{% endblock %}
