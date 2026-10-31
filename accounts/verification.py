@@ -26,6 +26,8 @@ from .models import IdentityVerification, PhoneCode, User
 EMAIL_SALT = 'servana-email-verify'
 MAX_FILE_MB = 5
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.pdf')
+# the first bytes of a real JPG, PNG and PDF
+FILE_STARTS = (b'\xff\xd8\xff', b'\x89PNG', b'%PDF')
 
 
 def hash_value(value):
@@ -169,6 +171,11 @@ def check_file(upload):
         raise ValidationError('Please upload a JPG, PNG or PDF file.')
     if upload.size > MAX_FILE_MB * 1024 * 1024:
         raise ValidationError(f'The file is too big. Maximum size is {MAX_FILE_MB} MB.')
+    # the name can be faked, so also look at the first bytes of the file itself
+    start = upload.read(8)
+    upload.seek(0)
+    if not start.startswith(FILE_STARTS):
+        raise ValidationError('That file is not a real JPG, PNG or PDF. Please upload a photo or scan.')
     return upload
 
 
@@ -240,7 +247,10 @@ class IdentityForm(forms.Form):
 def verify_identity(request):
     user = request.user
     existing = IdentityVerification.objects.filter(user=user).first()
-    if existing and existing.status in (IdentityVerification.Status.PENDING, IdentityVerification.Status.APPROVED):
+    waiting = existing and existing.status == IdentityVerification.Status.PENDING
+    approved_and_in_date = (existing and existing.status == IdentityVerification.Status.APPROVED
+                            and not user.id_expired)
+    if waiting or approved_and_in_date:
         messages.info(request, 'Your documents are already ' + existing.get_status_display().lower() + '.')
         return redirect('verify_center')
 

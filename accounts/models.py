@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.utils import timezone
 
 
 def private_storage():
@@ -40,7 +41,16 @@ class User(AbstractUser):
     def is_verified(self):
         if self.is_superuser or self.role == self.Role.ADMIN:
             return True
-        return self.email_verified and self.phone_verified and self.id_verified
+        return bool(self.email_verified and self.phone_verified and self.id_verified and not self.id_expired)
+
+    @property
+    def id_expired(self):
+        """True when the approved passport or visa has run out since an admin approved it."""
+        record = getattr(self, 'identity', None)
+        if record is None:
+            return False            # older accounts that were trusted before ID checks existed
+        today = timezone.localdate()
+        return record.passport_expiry <= today or bool(record.visa_expiry and record.visa_expiry <= today)
 
 
 class CustomerProfile(models.Model):

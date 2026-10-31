@@ -39,6 +39,9 @@ class ServiceListingForm(forms.ModelForm):
     def clean_description(self):
         return clean_public_text(self.cleaned_data['description'])
 
+    def clean_availability(self):
+        return clean_public_text(self.cleaned_data['availability'])
+
     def clean_price(self):
         price = self.cleaned_data['price']
         if price < 0:

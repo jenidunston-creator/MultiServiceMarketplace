@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
@@ -20,7 +21,7 @@ from communication.notify import notify, notify_admins
 from services.models import ProviderMatch, ServiceProviderService, ServiceRequest
 from . import stripe_client
 from .forms import ComplaintForm, QuotationForm, RequestForm, ReviewForm
-from .models import Booking, Complaint, Payment, PaymentTransaction, Quotation, Review
+from .models import Booking, Complaint, Payment, PaymentTransaction, Payout, Quotation, Review
 
 logger = logging.getLogger(__name__)
 
@@ -561,9 +562,14 @@ def payment_decide(request, pk):
             messages.error(request, 'The customer has not confirmed the work yet, so the money stays held.')
             return redirect('payment_approvals')
         payment.status = Payment.Status.RELEASED
+        # credit the provider's Servana account (one payout per payment)
+        payout, _ = Payout.objects.get_or_create(
+            payment=payment,
+            defaults={'provider': booking.provider, 'amount': payment.amount_paid,
+                      'reference': 'PAYOUT-' + uuid.uuid4().hex[:10].upper()})
         text_customer = f'Servana released your payment for booking #{booking.pk} to the provider. Thank you!'
-        text_provider = (f'Your payment of ${payment.amount_paid} for booking #{booking.pk} '
-                         f'({booking.service.name}) has been released to you.')
+        text_provider = (f'${payout.amount} for booking #{booking.pk} ({booking.service.name}) was credited '
+                         f'to your Servana account. Reference {payout.reference}.')
     elif decision == 'refund':
         payment.status = Payment.Status.REFUNDED
         text_customer = (f'Your payment for booking #{booking.pk} is being refunded.'

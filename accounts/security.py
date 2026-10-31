@@ -3,6 +3,22 @@ import re
 
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.utils import timezone
+
+
+# ---------------------------------------------------------------- who counts as "verified"
+def verified_user_q(prefix=''):
+    """Database filter for people who are fully verified: email, mobile and passport/visa approved,
+    and the passport and visa still in date today. Admins always count.
+    `prefix` is the path to the user, for example 'provider__user__'."""
+    today = timezone.localdate()
+    staff = Q(**{f'{prefix}is_superuser': True}) | Q(**{f'{prefix}role': 'ADMIN'})
+    checked = Q(**{f'{prefix}email_verified': True, f'{prefix}phone_verified': True,
+                   f'{prefix}id_verified': True})
+    in_date = (~Q(**{f'{prefix}identity__passport_expiry__lte': today})
+               & ~Q(**{f'{prefix}identity__visa_expiry__lte': today}))
+    return staff | (checked & in_date)
 
 
 # ---------------------------------------------------------------- rate limiting

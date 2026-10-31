@@ -35,6 +35,7 @@
                         <td>
                             {% if b.payment %}
                                 <span class="badge-soft {% if b.payment.status == 'RELEASED' %}badge-done{% elif b.payment.status == 'HELD' %}badge-confirmed{% elif b.payment.status == 'PART_HELD' %}badge-progress{% elif b.payment.status == 'REFUNDED' or b.payment.status == 'FAILED' %}badge-cancelled{% else %}badge-pending{% endif %}">{{ b.payment.get_status_display }}</span>
+                                {% if view_as == 'provider' and b.payment.status == 'RELEASED' and b.payment.payout %}<br><small class="text-muted">${{ b.payment.payout.amount|floatformat:"-2" }} credited to you<br>{{ b.payment.payout.reference }}</small>{% endif %}
                                 {% if b.payment.status == 'PART_HELD' %}<br><small class="text-muted">Paid ${{ b.payment.amount_paid|floatformat:"-2" }}, balance ${{ b.payment.balance_due|floatformat:"-2" }}</small>{% endif %}
                                 {% if b.payment.admin_note %}<br><small class="text-muted">{{ b.payment.admin_note }}</small>{% endif %}
                             {% else %}<span class="text-muted">Not paid</span>{% endif %}

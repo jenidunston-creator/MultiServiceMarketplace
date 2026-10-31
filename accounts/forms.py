@@ -38,6 +38,12 @@ class SignupForm(UserCreationForm):
             raise forms.ValidationError('An account with this email already exists.')
         return email
 
+    def clean_first_name(self):
+        return clean_public_text(self.cleaned_data['first_name'])
+
+    def clean_last_name(self):
+        return clean_public_text(self.cleaned_data['last_name'])
+
     def clean_website(self):
         if self.cleaned_data.get('website'):
             raise forms.ValidationError('Spam check failed.')
@@ -98,6 +104,12 @@ class ProviderProfileForm(forms.ModelForm):
 
     def clean_city(self):
         return self.cleaned_data['city'].strip().title()
+
+    def clean_provider_name(self):
+        return clean_public_text(self.cleaned_data['provider_name'])
+
+    def clean_service_area(self):
+        return clean_public_text(self.cleaned_data['service_area'])
 
     def clean_bio(self):
         return clean_public_text(self.cleaned_data['bio'])

@@ -93,10 +93,13 @@ On Mac or Linux, use `source venv/bin/activate` in step 3.
 ## 6. Login details (demo accounts)
 
 These accounts are made by `python manage.py seed_demo`. **They are for demonstration only.**
+The password below is public, so it is only used for the customer, provider and business demo accounts.
+**The admin account is never given a public password.** On your own computer `seed_demo` makes an `admin`
+account (only while `DEBUG` is on). On the live site make your own admin with
+`python manage.py createsuperuser` and keep that password private.
 
 | Role | Username | Password | Where it goes after login |
 |---|---|---|---|
-| Admin | `admin` | `Demo@12345` | `/dashboard/admin-panel/` (also `/admin/` for the Django admin site) |
 | Provider | `demo_provider` | `Demo@12345` | `/dashboard/provider/` |
 | Customer | `demo_customer` | `Demo@12345` | `/dashboard/customer/` |
 | Business | `demo_business` | `Demo@12345` | `/dashboard/business/` |
@@ -113,6 +116,7 @@ In the Django admin, set the user's **role** to *Admin* so the Servana admin das
 | `python manage.py makemigrations` | Make a migration after changing a model |
 | `python manage.py seed_demo` | Add demo users, categories, services and listings |
 | `python manage.py createsuperuser` | Create another admin user |
+| `python manage.py security_check` | Plain-English safety check (admin passwords, DEBUG, Stripe mode, expired IDs). Run it on your computer and on the live site |
 | `python manage.py check` | Check the project for problems |
 
 ## 8. Main pages
@@ -155,7 +159,7 @@ All models are registered in the Django admin.
 - `login_required` and a `role_required` decorator protect every private page. Admin-only pages return **403 Forbidden** to other roles.
 - Users can only see or change their own bookings, listings and chats. Actions that change data accept **POST** only.
 - **Verified accounts only.** A new user must confirm their email, confirm their mobile number with a 6-digit code, and send passport (and NZ visa if not a NZ passport) details that an **admin approves**. Until then they cannot book, pay, chat or offer services, and their listings are hidden from customers.
-- Passport numbers are stored only as a one-way hash (one passport can be used on one account only). Passport and visa photos are stored in a private folder, never in public media, and only the owner and admins can open them. Expired passports and visas are rejected.
+- Passport numbers are stored only as a one-way hash (one passport can be used on one account only). Passport and visa photos are stored in a private folder, never in public media, and only the owner and admins can open them. Expired passports and visas are rejected, and an account that was approved is blocked again (and its listings hidden) the day its passport or visa runs out, until new documents are sent and approved. Uploaded ID files must really be a JPG, PNG or PDF.
 - **Protected payments (escrow).** Customers pay Servana through Stripe Checkout (NZD, test mode only). The provider cannot start work until the payment is held. After the work is completed and the customer confirms it, the admin releases the money to the provider. The admin can refund a held payment.
 - Customers can choose to pay in full or pay a 30% advance and the balance later.
 - Payment amounts are decided by the server, never the browser. Every payment is confirmed by asking Stripe directly (status, NZD amount and booking), repeated confirmations are ignored, and live keys are refused.

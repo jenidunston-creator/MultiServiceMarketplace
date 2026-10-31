@@ -206,6 +206,21 @@ class PaymentTransaction(models.Model):
         return f"{self.get_kind_display()} for Booking #{self.payment.booking_id}"
 
 
+class Payout(models.Model):
+    """Money credited to a provider's Servana account when the admin releases a held payment."""
+    payment = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='payout')
+    provider = models.ForeignKey(ProviderProfile, on_delete=models.CASCADE, related_name='payouts')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reference = models.CharField(max_length=30, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.reference}: ${self.amount} to {self.provider}"
+
+
 class Review(models.Model):
     booking = models.OneToOneField(
         Booking,

@@ -31,9 +31,7 @@ def _first_name(user):
 
 def about(request):
     """Static-looking About page. The numbers and reviews are real, read from the database."""
-    verified_provider = (Q(user__is_superuser=True) | Q(user__email_verified=True, user__phone_verified=True,
-                                                         user__id_verified=True))
-    providers = ProviderProfile.objects.filter(verified_provider)
+    providers = ProviderProfile.objects.filter(security.verified_user_q('user__'))
     stats = {
         'providers': providers.count(),
         'services': Service.objects.filter(is_active=True).count(),
@@ -55,7 +53,7 @@ def about(request):
                               'role': ROLE_LABEL[role]})
         return items[:2]
 
-    top_providers = (ProviderProfile.objects.filter(verified_provider)
+    top_providers = (ProviderProfile.objects.filter(security.verified_user_q('user__'))
                      .annotate(avg=Avg('received_reviews__rating', filter=Q(received_reviews__is_approved=True)),
                                n=Count('received_reviews', filter=Q(received_reviews__is_approved=True)))
                      .filter(n__gt=0).order_by('-avg', '-n')[:3])

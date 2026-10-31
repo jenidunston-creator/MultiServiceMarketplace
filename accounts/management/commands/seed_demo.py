@@ -3,12 +3,17 @@
 Run it with:   python manage.py seed_demo
 It is safe to run more than once (it never makes duplicates).
 """
+import os
+
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from accounts.models import Business, CustomerProfile, ProviderProfile, User
 from services.models import Service, ServiceCategory, ServiceProviderService
 
-DEMO_PASSWORD = 'Demo@12345'
+# The demo password is public (it is in the README), so it must never open an admin account on the live site.
+# On the live site you can also set a different one:  os.environ['DEMO_PASSWORD'] = '...'
+DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', 'Demo@12345')
 
 CATEGORIES = {
     'Home Maintenance': [('Plumbing', 95), ('Electrical Work', 100),
@@ -126,8 +131,15 @@ class Command(BaseCommand):
                     defaults={'base_price': price, 'description': f'{name} across New Zealand.'})
 
         # --- users
-        admin = self.make_user('admin', User.Role.ADMIN, is_staff=True, is_superuser=True,
-                               first_name='Site', last_name='Admin')
+        # The demo admin is made ONLY on your own computer (DEBUG is on). On the live site an admin with a
+        # public password would let anyone in. There, use createsuperuser or changepassword instead.
+        if settings.DEBUG:
+            self.make_user('admin', User.Role.ADMIN, is_staff=True, is_superuser=True,
+                           first_name='Site', last_name='Admin')
+        else:
+            self.stdout.write(self.style.WARNING(
+                'Live site: no demo admin was made or changed. Make your own with '
+                '"python manage.py createsuperuser" (then set its role to Admin).'))
         customer = self.make_user('demo_customer', User.Role.CUSTOMER,
                                   first_name='Aroha', last_name='Customer')
         provider = self.make_user('demo_provider', User.Role.SERVICE_PROVIDER,
@@ -251,5 +263,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Demo data is ready.'))
         self.stdout.write(f'Password for every demo account: {DEMO_PASSWORD}')
-        self.stdout.write('Usernames: admin, demo_customer, demo_provider, demo_business '
+        self.stdout.write('Usernames: ' + ('admin, ' if settings.DEBUG else '') +
+                          'demo_customer, demo_provider, demo_business '
                           '(plus ' + ', '.join(demo_usernames[1:]) + ')')
+        self.stdout.write('Check the site now with:  python manage.py security_check')

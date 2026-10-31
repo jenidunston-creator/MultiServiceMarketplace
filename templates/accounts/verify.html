@@ -57,14 +57,18 @@
         <!-- Step 3 -->
         <div class="card-box mb-3">
             <h2 class="h5">3. Passport and NZ visa
-                {% if user.id_verified %}<span class="badge-soft badge-confirmed">Approved</span>
+                {% if user.id_verified and user.id_expired %}<span class="badge-soft badge-cancelled">Expired</span>
+                {% elif user.id_verified %}<span class="badge-soft badge-confirmed">Approved</span>
                 {% elif identity and identity.status == 'PENDING' %}<span class="badge-soft badge-progress">Waiting for admin</span>
                 {% elif identity and identity.status == 'REJECTED' %}<span class="badge-soft badge-cancelled">Rejected</span>
                 {% else %}<span class="badge-soft badge-pending">To do</span>{% endif %}</h2>
             {% if identity and identity.status == 'REJECTED' %}
                 <p class="small text-danger">{{ identity.admin_note|default:"Please send your documents again." }}</p>
             {% endif %}
-            {% if user.id_verified %}
+            {% if user.id_verified and user.id_expired %}
+                <p class="small text-danger">Your passport or NZ visa has run out. Please send your new documents to keep using Servana.</p>
+                <a class="btn btn-primary-custom btn-sm" href="{% url 'verify_identity' %}">Send new documents</a>
+            {% elif user.id_verified %}
                 <p class="mb-0 small text-muted">An admin approved your documents.</p>
             {% elif identity and identity.status == 'PENDING' %}
                 <p class="mb-0 small text-muted">An admin is checking your documents. You will get a notification.</p>

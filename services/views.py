@@ -7,17 +7,15 @@ from django.utils.text import slugify
 
 from accounts.decorators import role_required
 from accounts.models import User
+from accounts.security import verified_user_q
 from .forms import ServiceListingForm
 from .models import ServiceCategory, ServiceProviderService
 from bookings.models import Review
 
 
-# Only providers who are fully verified (email, mobile, passport and visa) are shown to customers.
-VERIFIED_PROVIDER = (
-    Q(provider__user__is_superuser=True) | Q(provider__user__role=User.Role.ADMIN)
-    | Q(provider__user__email_verified=True, provider__user__phone_verified=True,
-        provider__user__id_verified=True)
-)
+def verified_provider():
+    """Only providers who are fully verified (email, mobile, passport and visa in date) are shown."""
+    return verified_user_q('provider__user__')
 
 
 def with_ratings(queryset):
@@ -47,7 +45,7 @@ def home(request):
 
 # ---------- READ (list + search + filter) ----------
 def service_list(request):
-    listings = ServiceProviderService.objects.filter(is_active=True).filter(VERIFIED_PROVIDER).select_related(
+    listings = ServiceProviderService.objects.filter(is_active=True).filter(verified_provider()).select_related(
         'provider', 'service', 'service__category'
     )
 
@@ -133,7 +131,7 @@ def service_compare(request):
     listings = []
     if ids:
         listings = with_ratings(
-            ServiceProviderService.objects.filter(pk__in=ids, is_active=True).filter(VERIFIED_PROVIDER)
+            ServiceProviderService.objects.filter(pk__in=ids, is_active=True).filter(verified_provider())
             .select_related('provider', 'service')
         )
     return render(request, 'services/compare.html', {'listings': listings})

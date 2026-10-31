@@ -7,7 +7,6 @@
     <a href="/services/new/">Add a service</a>
     <a href="{% url 'provider_profile' %}">My profile</a>
     <a href="/dashboard/provider/#my-services">My services</a>
-    <a href="/dashboard/provider/#requests">Requests</a>
     <a href="/quotations/">Quotations</a>
     <a href="/bookings/">Bookings and jobs</a>
     <a href="{% url 'complaint_list' %}">Complaints</a>
@@ -35,6 +34,30 @@
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ request_count }}</div><div class="lbl">Quote requests</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ pending_count }}</div><div class="lbl">Jobs to confirm</div></div></div>
     <div class="col-6 col-lg-3"><div class="stat-card"><div class="num">{{ avg_rating|default:"-" }}</div><div class="lbl">Average rating</div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-6"><div class="stat-card"><div class="num">${{ money_received|floatformat:"-2" }}</div><div class="lbl">Credited to your Servana account</div></div></div>
+    <div class="col-12 col-md-6"><div class="stat-card"><div class="num">${{ money_held|floatformat:"-2" }}</div><div class="lbl">Held by Servana for your jobs (released after the customer confirms)</div></div></div>
+</div>
+
+<h2 class="h5">Payments credited to you</h2>
+<div class="table-wrap table-responsive mb-4">
+    <table class="table mb-0">
+        <thead><tr><th>Date</th><th>Job</th><th>Amount</th><th>Reference</th></tr></thead>
+        <tbody>
+            {% for p in payouts %}
+            <tr>
+                <td>{{ p.created_at|date:"d M Y H:i" }}</td>
+                <td>#{{ p.payment.booking.pk }} {{ p.payment.booking.service.name }}</td>
+                <td><strong>${{ p.amount|floatformat:"-2" }}</strong></td>
+                <td><small>{{ p.reference }}</small></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted py-4">Nothing credited yet. You are paid after the customer confirms the finished job.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 <h2 class="h5" id="requests">Latest jobs</h2>

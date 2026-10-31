@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from . import security
 from .decorators import role_required
 from .forms import ROLE_MAP, ProviderProfileForm, SignupForm
-from bookings.models import Booking, Complaint, Payment, Quotation, Review
+from bookings.models import Booking, Complaint, Payment, Payout, Quotation, Review
 from communication.models import ChatConversation
 from services.models import ServiceProviderService, ServiceRequest
 from .models import Business, IdentityVerification, ProviderProfile, User
@@ -78,7 +78,15 @@ def provider_dashboard(request):
         'service', 'customer__user').order_by('-created_at')
     average = Review.objects.filter(
         provider__user=request.user, is_approved=True).aggregate(a=Avg('rating'))['a']
+    my_payments = Payment.objects.filter(booking__provider__user=request.user)
+    my_payouts = Payout.objects.filter(provider__user=request.user).select_related('payment__booking__service')
+    paid_out = my_payouts.aggregate(t=Sum('amount'))['t']
+    held = my_payments.filter(status__in=[Payment.Status.PART_HELD, Payment.Status.HELD]).aggregate(
+        t=Sum('amount_paid'))['t']
     return render(request, 'dashboards/provider.html', {
+        'money_received': paid_out or 0,
+        'payouts': my_payouts[:10],
+        'money_held': held or 0,
         'profile': ProviderProfile.objects.filter(user=request.user).first(),
         'listings': listings,
         'live_count': listings.filter(is_active=True).count(),
