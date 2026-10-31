@@ -166,6 +166,8 @@ SOCIAL_LINKS = [
     ('LinkedIn', 'https://www.linkedin.com/'),
     ('X', 'https://x.com/'),
     ('YouTube', 'https://www.youtube.com/'),
+    # opens a WhatsApp chat with 022 591 3229 (+64 22 591 3229)
+    ('WhatsApp', 'https://wa.me/64225913229'),
 ]
 
 
