@@ -192,12 +192,14 @@ class PaymentTransaction(models.Model):
         CREATED = 'CREATED', 'Started'
         PAID = 'PAID', 'Paid'
         FAILED = 'FAILED', 'Failed'
+        REFUNDED = 'REFUNDED', 'Refunded'
 
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='transactions')
     kind = models.CharField(max_length=10, choices=Kind.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)          # in NZD
     stripe_session_id = models.CharField(max_length=120, unique=True)
     stripe_payment_id = models.CharField(max_length=120, blank=True)
+    stripe_refund_id = models.CharField(max_length=120, blank=True)       # set when the money was sent back
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATED)
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)

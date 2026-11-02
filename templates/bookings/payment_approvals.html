@@ -33,7 +33,7 @@
                                 <label class="visually-hidden" for="note{{ p.pk }}">Note (optional)</label>
                                 <input class="form-control form-control-sm" style="min-width:140px;" id="note{{ p.pk }}" name="note" maxlength="255" placeholder="Note (optional)">
                                 <button class="btn btn-primary-custom btn-sm" name="decision" value="release" type="submit">Release to provider</button>
-                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment to the customer?');">Refund</button>
+                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment? The money goes back to the customer\'s card through Stripe.');">Refund</button>
                             </form>
                         </td>
                     </tr>
@@ -64,7 +64,7 @@
                             {% if p.booking.status == 'CANCELLED' %}
                             <form method="post" action="{% url 'payment_decide' p.pk %}">
                                 {% csrf_token %}
-                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment to the customer?');">Refund</button>
+                                <button class="btn btn-danger-soft btn-sm" name="decision" value="refund" type="submit" onclick="return confirm('Refund this payment? The money goes back to the customer\'s card through Stripe.');">Refund</button>
                             </form>
                             {% endif %}
                         </td>

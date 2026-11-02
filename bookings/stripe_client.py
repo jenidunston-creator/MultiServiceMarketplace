@@ -36,6 +36,24 @@ def create_checkout_session(amount_nzd, description, success_url, cancel_url, me
     return response.json()
 
 
+def expire_session(session_id):
+    """Closes a checkout that the customer never finished, so it cannot be paid later."""
+    response = requests.post(f'{settings.STRIPE_API_URL}/checkout/sessions/{session_id}/expire',
+                             auth=(settings.STRIPE_SECRET_KEY, ''), timeout=15)
+    response.raise_for_status()
+    return response.json()
+
+
+def create_refund(payment_intent, idempotency_key):
+    """Sends the whole payment back to the customer's card. The idempotency key makes a repeated
+    click safe: Stripe will not refund the same payment twice."""
+    response = requests.post(f'{settings.STRIPE_API_URL}/refunds', auth=(settings.STRIPE_SECRET_KEY, ''),
+                             data={'payment_intent': payment_intent},
+                             headers={'Idempotency-Key': idempotency_key}, timeout=15)
+    response.raise_for_status()
+    return response.json()
+
+
 def retrieve_session(session_id):
     response = requests.get(f'{settings.STRIPE_API_URL}/checkout/sessions/{session_id}',
                             auth=(settings.STRIPE_SECRET_KEY, ''), timeout=15)

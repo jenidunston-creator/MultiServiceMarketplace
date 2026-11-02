@@ -1,7 +1,8 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.views.generic import TemplateView
 
-from . import verification, views
+from . import password_reset, verification, views
 from .login import ThrottledLoginView
 
 urlpatterns = [
@@ -16,6 +17,14 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('signup/', views.signup_view, name='signup'),
     path('profile/', views.provider_profile_edit, name='provider_profile'),
+
+    # forgot password
+    path('forgot/', password_reset.password_forgot, name='password_forgot'),
+    path('forgot/sent/', TemplateView.as_view(template_name='accounts/password_forgot_done.html'),
+         name='password_forgot_done'),
+    path('reset/<uidb64>/<token>/', password_reset.ResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('reset/done/', TemplateView.as_view(template_name='accounts/password_reset_complete.html'),
+         name='password_reset_complete'),
 
     # verification: email, mobile, passport and visa
     path('verify/', verification.verify_center, name='verify_center'),

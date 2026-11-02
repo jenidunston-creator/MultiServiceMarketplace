@@ -192,6 +192,16 @@ def advance_amount(total):
     return (total * Decimal(settings.ADVANCE_PERCENT) / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
 
+# Stripe cannot take very small payments, so a tiny job can only be paid in full.
+MIN_PART = Decimal('1.00')
+
+
+def advance_allowed(total):
+    """The advance option is offered only when both the advance and the rest are big enough for Stripe."""
+    advance = advance_amount(total)
+    return advance >= MIN_PART and (total - advance) >= MIN_PART
+
+
 def get_payable_booking(request, pk):
     return get_object_or_404(
         Booking.objects.select_related('service', 'provider'), pk=pk, customer__user=request.user)
@@ -220,6 +230,7 @@ def booking_pay(request, pk):
         'booking': booking, 'payment': payment, 'paying_balance': paying_balance,
         'total': total, 'subtotal': subtotal, 'gst': total - subtotal,
         'advance': advance_amount(total), 'advance_rest': total - advance_amount(total),
+        'advance_ok': advance_allowed(total),
         'advance_percent': settings.ADVANCE_PERCENT,
         'balance': payment.balance_due if paying_balance else None,
         'stripe_ready': stripe_client.is_configured(),
@@ -249,13 +260,24 @@ def payment_create_order(request, pk):
 
         if payment.money_held:                       # the advance is paid, now the balance
             kind, amount = PaymentTransaction.Kind.BALANCE, payment.balance_due
-        elif plan == Payment.Plan.ADVANCE:
+        elif plan == Payment.Plan.ADVANCE and advance_allowed(payment.amount):
             kind, amount = PaymentTransaction.Kind.ADVANCE, advance_amount(payment.amount)
             payment.plan = Payment.Plan.ADVANCE
         else:
             kind, amount = PaymentTransaction.Kind.FULL, payment.amount
             payment.plan = Payment.Plan.FULL
         payment.save()
+
+        # an older checkout that was never finished must not stay open, or the customer could pay twice
+        for old in payment.transactions.filter(status=PaymentTransaction.Status.CREATED):
+            try:
+                stripe_client.expire_session(old.stripe_session_id)
+            except Exception:
+                # it may already be paid; the return page still counts it safely
+                logger.warning('Could not close old checkout %s', old.stripe_session_id)
+            else:
+                old.status = PaymentTransaction.Status.FAILED
+                old.save()
 
         label = {'FULL': 'full payment', 'ADVANCE': 'advance', 'BALANCE': 'balance'}[kind]
         return_url = request.build_absolute_uri(reverse('payment_return', args=[booking.pk]))
@@ -313,18 +335,30 @@ def payment_return(request, pk):
         txn.save()
 
         payment = txn.payment
-        payment.amount_paid += txn.amount
+        # Never count more than the price. If the customer paid twice (two checkout tabs), only the
+        # amount still due is counted and the extra is flagged for the admin to refund in Stripe.
+        settled = payment.status in (Payment.Status.RELEASED, Payment.Status.REFUNDED)
+        credit = Decimal('0') if settled else min(txn.amount, max(payment.balance_due, Decimal('0')))
+        extra = txn.amount - credit
+        payment.amount_paid += credit
         payment.transaction_reference = txn.stripe_payment_id
         payment.paid_at = now
-        payment.status = Payment.Status.HELD if payment.fully_paid else Payment.Status.PART_HELD
+        if not settled:
+            payment.status = Payment.Status.HELD if payment.fully_paid else Payment.Status.PART_HELD
         payment.save()
 
-    notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment received by Servana',
-           f'{request.user.username} paid ${txn.amount} for booking #{booking.pk} ({booking.service.name}). '
-           f'Servana holds it safely, so you can start the work.', '/bookings/')
-    notify_admins(Notification.NotificationType.PAYMENT, 'Payment held',
-                  f'${txn.amount} for booking #{booking.pk} is now held by Servana.', '/bookings/payments/')
-    messages.success(request, f'Payment of ${txn.amount} received. Servana is holding it safely until the work is done.')
+    if extra > 0:
+        notify_admins(Notification.NotificationType.PAYMENT, 'Extra payment to refund',
+                      f'Booking #{booking.pk}: the customer paid ${extra} more than the price (a second checkout). '
+                      f'Please refund ${extra} in the Stripe dashboard.', '/bookings/payments/')
+        messages.warning(request, f'You paid ${extra} more than needed. Servana will refund the extra ${extra}.')
+    if credit > 0:
+        notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment received by Servana',
+               f'{request.user.username} paid ${credit} for booking #{booking.pk} ({booking.service.name}). '
+               f'Servana holds it safely, so you can start the work.', '/bookings/')
+        notify_admins(Notification.NotificationType.PAYMENT, 'Payment held',
+                      f'${credit} for booking #{booking.pk} is now held by Servana.', '/bookings/payments/')
+        messages.success(request, f'Payment of ${credit} received. Servana is holding it safely until the work is done.')
     return redirect('booking_list')
 
 
@@ -544,6 +578,36 @@ def payment_approvals(request):
     })
 
 
+def refund_with_stripe(payment):
+    """Sends the customer's money back through Stripe (test mode). Returns (True, '') when done,
+    or (False, 'what went wrong'). Already refunded parts are remembered, so trying again is safe."""
+    todo = list(payment.transactions.filter(status=PaymentTransaction.Status.PAID))
+    if not todo:
+        return True, ''                       # nothing was paid through Stripe (older records)
+    if not stripe_client.is_configured():
+        return False, 'Stripe is not set up here (the test key is missing), so the refund cannot be sent.'
+    for txn in todo:
+        if not txn.stripe_payment_id.startswith('pi_'):
+            return False, f'Payment part ${txn.amount} has no Stripe reference. Refund it in the Stripe dashboard.'
+        try:
+            refund = stripe_client.create_refund(txn.stripe_payment_id, f'servana-refund-txn-{txn.pk}')
+        except Exception as error:
+            code = ''
+            try:
+                code = error.response.json().get('error', {}).get('code', '')
+            except Exception:
+                pass
+            if code != 'charge_already_refunded':
+                logger.exception('Stripe refund failed')
+                return False, (f'Stripe could not refund ${txn.amount}. The payment is still held, '
+                               f'so you can try again.')
+            refund = {'id': 'already-refunded'}
+        txn.status = PaymentTransaction.Status.REFUNDED
+        txn.stripe_refund_id = str(refund.get('id', ''))[:120]
+        txn.save()
+    return True, ''
+
+
 @role_required(User.Role.ADMIN)
 @require_POST
 def payment_decide(request, pk):
@@ -571,8 +635,13 @@ def payment_decide(request, pk):
         text_provider = (f'${payout.amount} for booking #{booking.pk} ({booking.service.name}) was credited '
                          f'to your Servana account. Reference {payout.reference}.')
     elif decision == 'refund':
+        done, problem = refund_with_stripe(payment)
+        if not done:
+            messages.error(request, problem)
+            return redirect('payment_approvals')
         payment.status = Payment.Status.REFUNDED
-        text_customer = (f'Your payment for booking #{booking.pk} is being refunded.'
+        text_customer = (f'Your payment for booking #{booking.pk} was refunded to your card through Stripe. '
+                         f'It can take a few days to show on your statement.'
                          + (f' Note: {note}' if note else ''))
         text_provider = f'The payment for booking #{booking.pk} was refunded to the customer.'
     else:
@@ -588,7 +657,8 @@ def payment_decide(request, pk):
            'Payment ' + ('released' if decision == 'release' else 'refunded'), text_customer, '/bookings/')
     notify(booking.provider.user, Notification.NotificationType.PAYMENT,
            'Payment ' + ('released' if decision == 'release' else 'refunded'), text_provider, '/bookings/')
-    messages.success(request, f'Payment #{payment.pk}: {payment.get_status_display().lower()}.')
+    messages.success(request, f'Payment #{payment.pk}: {payment.get_status_display().lower()}.'
+                     + (' The money was sent back through Stripe.' if decision == 'refund' else ''))
     return redirect('payment_approvals')
 
 

@@ -183,6 +183,8 @@ ADVANCE_PERCENT = 30
 
 # ---------- Identity checks (email, mobile, passport and visa) ----------
 PRIVATE_MEDIA_ROOT = BASE_DIR / 'private_media'          # passport and visa photos (never public)
+# A password reset link works for 1 hour (and only once)
+PASSWORD_RESET_TIMEOUT = 3600
 # Email. Without a real mail account the link is printed in the server window (console backend).
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')

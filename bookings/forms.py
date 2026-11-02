@@ -59,8 +59,8 @@ class QuotationForm(forms.ModelForm):
 
     def clean_amount(self):
         amount = self.cleaned_data['amount']
-        if amount <= 0:
-            raise forms.ValidationError('The price must be more than 0.')
+        if not 1 <= amount <= 100000:
+            raise forms.ValidationError('The price must be between $1 and $100,000.')
         return amount
 
     def clean_message(self):

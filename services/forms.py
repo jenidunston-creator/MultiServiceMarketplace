@@ -44,8 +44,8 @@ class ServiceListingForm(forms.ModelForm):
 
     def clean_price(self):
         price = self.cleaned_data['price']
-        if price < 0:
-            raise forms.ValidationError('Price cannot be negative.')
+        if not 1 <= price <= 100000:
+            raise forms.ValidationError('The price must be between $1 and $100,000.')
         return price
 
     def clean_service(self):
