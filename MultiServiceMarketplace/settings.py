@@ -156,7 +156,7 @@ if not DEBUG:
 # ---------- Site details shown on the About / Contact pages and in the footer ----------
 # Replace these with your own real details.
 SITE_CONTACT = {
-    'email': 'support@servana.example',
+    'email': 'servanamultiservicemarketplace@gmail.com',
     'phone': '022 591 3229',
     'address': '1/48 View Road, Henderson, Auckland 0612',
 }
