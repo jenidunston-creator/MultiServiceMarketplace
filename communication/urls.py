@@ -9,6 +9,7 @@ urlpatterns = [
     path('new/', views.chat_new, name='chat_new'),
 
     path('notifications/', views.notifications, name='notifications'),
+    path('notifications/count/', views.notifications_count, name='notifications_count'),
     path('notifications/clear/', views.notifications_clear, name='notifications_clear'),
 
     # for the support agent (admin)

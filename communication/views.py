@@ -150,6 +150,15 @@ def agent_close(request, pk):
 
 # ------------------------------------------------------------ notifications
 @login_required
+def notifications_count(request):
+    """Small JSON answer used by the bell to refresh the red number without reloading the page."""
+    from django.http import JsonResponse
+    resp = JsonResponse({'unread': Notification.objects.filter(user=request.user, is_read=False).count()})
+    resp['Cache-Control'] = 'no-store'
+    return resp
+
+
+@login_required
 def notifications(request):
     items = list(Notification.objects.filter(user=request.user)[:50])
     for item in items:

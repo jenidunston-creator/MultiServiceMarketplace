@@ -10,6 +10,18 @@
             {% block dash_sidebar %}{% endblock %}
         </aside>
         <section>
+            {% if unread_count %}
+            <div class="card-box dash-updates mb-4" style="height:auto;">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <h2 class="h5 mb-0">New updates <span class="red-count">{{ unread_count }}</span></h2>
+                    <a class="btn btn-outline-custom btn-sm" href="{% url 'notifications' %}">See all</a>
+                </div>
+                {% for n in latest_notifications %}{% if not n.is_read %}
+                <div class="upd"><strong>{{ n.title }}</strong> &middot; {{ n.message|truncatechars:140 }}
+                    <small class="text-muted d-block">{{ n.created_at|timesince }} ago</small></div>
+                {% endif %}{% endfor %}
+            </div>
+            {% endif %}
             {% block dash_content %}{% endblock %}
         </section>
     </div>

@@ -135,3 +135,25 @@ select:focus-visible, textarea:focus-visible {
     .section { padding: 40px 0; }
     .chat-box { height: 75vh; }
 }
+
+/* ---- notification bell (red number like Facebook) ---- */
+.bell-wrap { position: relative; }
+.bell-btn { position: relative; background: #fff; border: 1px solid #d9e2de; color: var(--primary-deep, #04261f); width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.bell-btn:hover { background: #eef5f1; }
+.bell-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #e0212b; color: #fff; font-size: .72rem; font-weight: 700; line-height: 20px; text-align: center; border: 2px solid #fff; box-sizing: content-box; }
+.bell-badge[hidden] { display: none; }
+.bell-menu { width: 340px; max-width: 92vw; padding: 0; overflow: hidden; border-radius: 14px; }
+.bell-head { padding: 12px 16px; font-weight: 700; border-bottom: 1px solid #e6eeea; }
+.bell-item { display: block; padding: 10px 16px; border-bottom: 1px solid #f0f4f2; color: #25313d; text-decoration: none; font-size: .88rem; }
+.bell-item span, .bell-item small { display: block; color: #5b6772; }
+.bell-item small { font-size: .75rem; }
+.bell-item.unread { background: #eaf6ef; }
+.bell-item.unread strong::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #e0212b; border-radius: 50%; margin-right: 6px; }
+.bell-item:hover { background: #f3f8f5; }
+.bell-empty { padding: 16px; color: #5b6772; font-size: .88rem; }
+.bell-all { display: block; text-align: center; padding: 10px; font-weight: 700; font-size: .88rem; color: var(--primary); text-decoration: none; }
+.dash-updates { border: 1px solid var(--accent, #d9a441); }
+.dash-updates .upd { padding: 8px 0; border-bottom: 1px solid #eef2f0; font-size: .92rem; }
+.dash-updates .upd:last-child { border-bottom: 0; }
+.red-count { display: inline-block; min-width: 22px; padding: 1px 7px; border-radius: 11px; background: #e0212b; color: #fff; font-size: .78rem; font-weight: 700; text-align: center; }
+@media (max-width: 991px) { .bell-menu { position: absolute; } }

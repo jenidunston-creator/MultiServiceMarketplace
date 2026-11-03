@@ -90,6 +90,9 @@ def booking_create(request):
             notify(listing.provider.user, Notification.NotificationType.BOOKING, 'New booking',
                    f'{request.user.username} booked {listing.service.name} for '
                    f'{service_request.preferred_date:%d %b %Y}.', '/bookings/')
+            notify(request.user, Notification.NotificationType.BOOKING, 'Booking placed',
+                   f'Your booking for {listing.service.name} on {service_request.preferred_date:%d %b %Y} '
+                   f'was sent to the provider. Next: wait for them to confirm, then pay.', '/bookings/')
             messages.success(request, 'Booking sent! The provider will confirm it soon.')
             return redirect('booking_list')
     else:
@@ -356,6 +359,11 @@ def payment_return(request, pk):
         notify(booking.provider.user, Notification.NotificationType.PAYMENT, 'Payment received by Servana',
                f'{request.user.username} paid ${credit} for booking #{booking.pk} ({booking.service.name}). '
                f'Servana holds it safely, so you can start the work.', '/bookings/')
+        notify(request.user, Notification.NotificationType.PAYMENT, 'Payment received',
+               f'We received your ${credit} for booking #{booking.pk} ({booking.service.name}). '
+               + ('It is held safely until the work is done.' if payment.fully_paid
+                  else f'This was the advance. ${payment.balance_due} is still due before the work is finished.'),
+               '/bookings/')
         notify_admins(Notification.NotificationType.PAYMENT, 'Payment held',
                       f'${credit} for booking #{booking.pk} is now held by Servana.', '/bookings/payments/')
         messages.success(request, f'Payment of ${credit} received. Servana is holding it safely until the work is done.')
