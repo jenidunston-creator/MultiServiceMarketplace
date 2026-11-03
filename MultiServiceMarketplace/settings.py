@@ -161,11 +161,10 @@ SITE_CONTACT = {
     'address': '1/48 View Road, Henderson, Auckland 0612',
 }
 SOCIAL_LINKS = [
-    ('Facebook', 'https://www.facebook.com/'),
-    ('Instagram', 'https://www.instagram.com/'),
-    ('LinkedIn', 'https://www.linkedin.com/'),
-    ('X', 'https://x.com/'),
-    ('YouTube', 'https://www.youtube.com/'),
+    ('Facebook', 'https://www.facebook.com/profile.php?id=61596373134178'),
+    ('Instagram', 'https://www.instagram.com/servanamultiservicemarketplace/'),
+    ('X', 'https://x.com/servananz'),
+    ('YouTube', 'https://www.youtube.com/@ServanaMultiServiceMarketplace'),
     # opens a WhatsApp chat with 022 591 3229 (+64 22 591 3229)
     ('WhatsApp', 'https://wa.me/64225913229'),
 ]
